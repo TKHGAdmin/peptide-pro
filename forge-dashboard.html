@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORGE OS — Thomas Transformation Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--void:#080a0c;--abyss:#0d1117;--depth:#111820;--surface:#141c25;--lifted:#1a2535;--raised:#1f2d3d;
+--rim:rgba(255,255,255,0.06);--rim-md:rgba(255,255,255,0.10);--rim-bright:rgba(255,255,255,0.18);
+--acid:#b8ff57;--acid-dim:rgba(184,255,87,0.10);--acid-glow:rgba(184,255,87,0.22);
+--ice:#57c8ff;--ice-dim:rgba(87,200,255,0.10);
+--ember:#ff6b35;--ember-dim:rgba(255,107,53,0.10);
+--violet:#a78bfa;--violet-dim:rgba(167,139,250,0.10);
+--gold:#ffd166;--gold-dim:rgba(255,209,102,0.10);
+--text:#f0f4f8;--text-2:#8899aa;--text-3:#4a5a6a;--text-4:#2a3a4a;
+--r:8px;--r-lg:14px;--r-xl:20px;
+}
+html{background:var(--void);color:var(--text);font-family:'Outfit',sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;position:relative;overflow-x:hidden}
+
+/* Ambient glows */
+.amb{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+.amb1{width:700px;height:700px;background:var(--acid);opacity:.055;filter:blur(120px);top:-250px;right:-200px;animation:drft1 14s ease-in-out infinite alternate}
+.amb2{width:600px;height:600px;background:var(--ice);opacity:.04;filter:blur(120px);bottom:-150px;left:-150px;animation:drft2 18s ease-in-out infinite alternate}
+@keyframes drft1{0%{transform:translate(0,0)}100%{transform:translate(-60px,40px)}}
+@keyframes drft2{0%{transform:translate(0,0)}100%{transform:translate(40px,-30px)}}
+
+/* Layout */
+.shell{max-width:1100px;margin:0 auto;padding:24px 20px 60px;position:relative;z-index:1}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:var(--acid);margin-bottom:4px}
+.logo span{color:var(--text-2);font-size:1rem;letter-spacing:1px;margin-left:8px;font-family:'Outfit',sans-serif;font-weight:300}
+.tagline{color:var(--text-3);font-size:.85rem;margin-bottom:20px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--abyss);border:1px solid var(--rim);border-radius:var(--r-xl);padding:4px;margin-bottom:24px;overflow-x:auto}
+.tab{padding:10px 18px;border-radius:16px;font-size:.85rem;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .2s;white-space:nowrap;border:none;background:none}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--surface);color:var(--acid);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+/* Panels */
+.panel{display:none}
+.panel.active{display:block;animation:fU .25s ease}
+@keyframes fU{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--rim);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;transition:border-color .2s,transform .2s}
+.card:hover{border-color:var(--rim-md);transform:translateY(-2px)}
+.card h3{font-size:.95rem;font-weight:600;margin-bottom:12px;color:var(--text)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:16px}
+
+/* Stat cards */
+.sc{position:relative;background:var(--surface);border:1px solid var(--rim);border-radius:var(--r-lg);padding:18px;overflow:hidden;transition:border-color .2s,transform .2s}
+.sc:hover{border-color:var(--rim-md);transform:translateY(-2px)}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--acid),transparent);opacity:0;transition:opacity .3s}
+.sc:hover::before{opacity:1}
+.sc .label{font-size:.75rem;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.sc .val{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;line-height:1;color:var(--text)}
+.sc .sub{font-size:.75rem;color:var(--text-2);margin-top:4px}
+
+/* Score donut wrapper */
+.score-wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.score-chart{width:180px;height:180px;position:relative}
+.score-chart canvas{width:100%!important;height:100%!important}
+.score-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.score-center .num{font-family:'Bebas Neue',sans-serif;font-size:3rem;line-height:1}
+.score-center .lbl{font-size:.7rem;color:var(--text-2);text-transform:uppercase;letter-spacing:1px}
+.score-pillars{flex:1;min-width:200px}
+.pillar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pillar-bar-bg{flex:1;height:6px;background:var(--depth);border-radius:3px;overflow:hidden}
+.pillar-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.pillar-label{font-size:.78rem;color:var(--text-2);min-width:90px}
+.pillar-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;min-width:30px;text-align:right}
+
+/* Inputs */
+input,select{background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.9rem;width:100%;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus{outline:none;border-color:var(--acid);box-shadow:0 0 0 3px var(--acid-dim);background:var(--lifted)}
+label{display:block;font-size:.75rem;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-family:'Outfit',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;border:none;transition:all .2s}
+.btn-acid{background:var(--acid);color:var(--void)}
+.btn-acid:hover{box-shadow:0 0 16px var(--acid-glow);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1px solid var(--rim);color:var(--text-2)}
+.btn-ghost:hover{border-color:var(--rim-md);color:var(--text)}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+
+/* Form row */
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column}
+
+/* Tables */
+.tbl{width:100%;border-collapse:collapse;font-size:.85rem}
+.tbl th{text-align:left;padding:10px 12px;color:var(--text-3);font-size:.72rem;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--rim)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--rim);font-family:'JetBrains Mono',monospace;font-size:.82rem}
+.tbl tr:hover td{background:var(--depth)}
+
+/* Day selector */
+.day-tabs{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.day-tab{padding:8px 14px;border-radius:var(--r);font-size:.78rem;font-weight:500;color:var(--text-3);cursor:pointer;border:1px solid var(--rim);background:var(--depth);transition:all .2s;white-space:nowrap}
+.day-tab:hover{border-color:var(--rim-md);color:var(--text)}
+.day-tab.active{background:var(--acid-dim);border-color:var(--acid);color:var(--acid)}
+
+/* Exercise card */
+.ex-card{background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.ex-card h4{font-size:.9rem;font-weight:600;margin-bottom:2px}
+.ex-meta{font-size:.75rem;color:var(--text-3);margin-bottom:10px}
+.ex-note{font-size:.78rem;color:var(--text-2);font-style:italic;margin-bottom:10px;padding:8px;background:var(--surface);border-radius:var(--r);border-left:2px solid var(--acid)}
+.set-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.set-row input{width:80px}
+.set-row .set-num{font-size:.75rem;color:var(--text-3);min-width:40px}
+.set-row .btn-sm{flex-shrink:0}
+
+/* PR badge */
+.pr-badge{display:inline-flex;align-items:center;gap:4px;background:var(--ember-dim);color:var(--ember);font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:10px;animation:prfl .6s ease 3}
+@keyframes prfl{0%{box-shadow:0 0 0 0 rgba(255,107,53,.6)}100%{box-shadow:0 0 0 8px rgba(255,107,53,0)}}
+
+/* Meal card */
+.meal-card{background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.meal-card h4{font-size:.88rem;font-weight:600;margin-bottom:2px;color:var(--acid)}
+.meal-name{font-size:.82rem;color:var(--text);font-weight:500;margin-bottom:4px}
+.meal-foods{font-size:.78rem;color:var(--text-2);margin-bottom:8px;line-height:1.6}
+.macro-row{display:flex;gap:12px;flex-wrap:wrap}
+.macro-pill{font-family:'JetBrains Mono',monospace;font-size:.75rem;padding:4px 10px;border-radius:10px}
+.macro-p{background:var(--acid-dim);color:var(--acid)}
+.macro-c{background:var(--ice-dim);color:var(--ice)}
+.macro-f{background:var(--ember-dim);color:var(--ember)}
+.macro-k{background:var(--violet-dim);color:var(--violet)}
+
+/* Day total bar */
+.day-total{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--surface);border:1px solid var(--rim);border-radius:var(--r-lg);margin-top:8px}
+.day-total .dt-label{font-size:.82rem;color:var(--text-2)}
+.day-total .dt-val{font-family:'Bebas Neue',sans-serif;font-size:1.6rem}
+
+/* Supplement card */
+.supp-card{display:flex;align-items:center;gap:14px;background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;transition:border-color .2s}
+.supp-card:hover{border-color:var(--rim-md)}
+.supp-icon{width:36px;height:36px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.supp-info{flex:1}
+.supp-name{font-size:.88rem;font-weight:600}
+.supp-dose{font-size:.78rem;color:var(--text-2)}
+.supp-timing{font-size:.72rem;color:var(--text-3)}
+
+/* Science section */
+.sci-block{background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.sci-block h4{font-size:.92rem;font-weight:600;margin-bottom:8px;color:var(--acid)}
+.sci-block p{font-size:.82rem;color:var(--text-2);line-height:1.7;margin-bottom:8px}
+.sci-block .cite{font-size:.72rem;color:var(--text-3);font-style:italic}
+
+/* Chart containers */
+.chart-wrap{position:relative;height:260px;margin-top:12px}
+.chart-wrap canvas{width:100%!important;height:100%!important}
+
+/* Prog mini chart */
+.prog-mini{height:130px;margin-top:10px;position:relative}
+.prog-mini canvas{width:100%!important;height:100%!important}
+
+/* Weight log list */
+.wl-entry{display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);margin-bottom:6px;transition:border-color .2s}
+.wl-entry:hover{border-color:var(--rim-md)}
+.wl-date{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text-2);min-width:90px}
+.wl-weight{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;min-width:80px}
+.wl-bf{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--ember);min-width:60px}
+.wl-delta{font-size:.78rem;padding:3px 8px;border-radius:8px;font-family:'JetBrains Mono',monospace}
+
+/* Responsive */
+@media(max-width:640px){
+.shell{padding:16px 12px 40px}
+.card-grid{grid-template-columns:1fr}
+.score-wrap{flex-direction:column;align-items:stretch}
+.score-chart{margin:0 auto}
+.form-row{grid-template-columns:1fr 1fr}
+.tabs{gap:2px;padding:3px}
+.tab{padding:8px 12px;font-size:.78rem}
+}
+</style>
+</head>
+<body>
+<div class="amb amb1"></div>
+<div class="amb amb2"></div>
+<div class="shell">
+<div class="logo">FORGE OS <span>v5.0</span></div>
+<div class="tagline">Thomas Transformation Protocol &mdash; 16-Week Body Recomposition</div>
+
+<div class="tabs">
+<div class="tab active" onclick="showTab('dash',this)">Dashboard</div>
+<div class="tab" onclick="showTab('train',this)">Training</div>
+<div class="tab" onclick="showTab('meals',this)">Meal Plan</div>
+<div class="tab" onclick="showTab('wlog',this)">Weight Log</div>
+<div class="tab" onclick="showTab('supps',this)">Supplements</div>
+<div class="tab" onclick="showTab('sci',this)">Science</div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="dash" class="panel active">
+<div class="card">
+<div class="score-wrap">
+<div class="score-chart">
+<canvas id="donutC"></canvas>
+<div class="score-center">
+<div class="num" id="scoreNum">--</div>
+<div class="lbl" id="scoreLbl">Log Data</div>
+</div>
+</div>
+<div class="score-pillars">
+<h3 style="margin-bottom:14px">Performance Pillars</h3>
+<div class="pillar">
+<span class="pillar-label" style="color:var(--acid)">Weight</span>
+<div class="pillar-bar-bg"><div class="pillar-bar" id="pW" style="width:0%;background:var(--acid)"></div></div>
+<span class="pillar-val" id="pWv">0</span>
+</div>
+<div class="pillar">
+<span class="pillar-label" style="color:var(--ice)">Strength</span>
+<div class="pillar-bar-bg"><div class="pillar-bar" id="pS" style="width:0%;background:var(--ice)"></div></div>
+<span class="pillar-val" id="pSv">0</span>
+</div>
+<div class="pillar">
+<span class="pillar-label" style="color:var(--ember)">Body Comp</span>
+<div class="pillar-bar-bg"><div class="pillar-bar" id="pC" style="width:0%;background:var(--ember)"></div></div>
+<span class="pillar-val" id="pCv">0</span>
+</div>
+<div class="pillar">
+<span class="pillar-label" style="color:var(--violet)">Consistency</span>
+<div class="pillar-bar-bg"><div class="pillar-bar" id="pK" style="width:0%;background:var(--violet)"></div></div>
+<span class="pillar-val" id="pKv">0</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card-grid">
+<div class="sc">
+<div class="label">Current Weight</div>
+<div class="val" id="dWeight">--</div>
+<div class="sub" id="dWeightSub">Log your first entry</div>
+</div>
+<div class="sc">
+<div class="label">Body Fat %</div>
+<div class="val" id="dBF" style="color:var(--ember)">--</div>
+<div class="sub" id="dBFSub">Goal: 10%</div>
+</div>
+<div class="sc">
+<div class="label">Fat Mass Lost</div>
+<div class="val" id="dFat" style="color:var(--ice)">--</div>
+<div class="sub" id="dFatSub">of 11.8 lbs target</div>
+</div>
+<div class="sc">
+<div class="label">PRs Hit</div>
+<div class="val" id="dPR" style="color:var(--ember)">0</div>
+<div class="sub">Lifetime personal records</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Weight &amp; Body Fat Trend</h3>
+<div class="chart-wrap"><canvas id="weightChart"></canvas></div>
+</div>
+
+<div class="card">
+<h3>Key Lift Progression (Est. 1RM)</h3>
+<div class="chart-wrap"><canvas id="liftChart"></canvas></div>
+</div>
+</div>
+
+<!-- ===== TRAINING ===== -->
+<div id="train" class="panel">
+<div class="day-tabs" id="trainDays"></div>
+<div id="trainContent"></div>
+</div>
+
+<!-- ===== MEAL PLAN ===== -->
+<div id="meals" class="panel">
+<div class="day-tabs" id="mealDays"></div>
+<div id="mealContent"></div>
+</div>
+
+<!-- ===== WEIGHT LOG ===== -->
+<div id="wlog" class="panel">
+<div class="card">
+<h3>Log Weight</h3>
+<div class="form-row">
+<div class="form-group">
+<label>Date</label>
+<input type="date" id="wlDate">
+</div>
+<div class="form-group">
+<label>Weight (lbs)</label>
+<input type="number" id="wlWeight" step="0.1" placeholder="174.2">
+</div>
+<div class="form-group">
+<label>Body Fat % (optional)</label>
+<input type="number" id="wlBF" step="0.1" placeholder="16.1">
+</div>
+<div class="form-group" style="justify-content:flex-end">
+<button class="btn btn-acid" onclick="addWeight()">Log Entry</button>
+</div>
+</div>
+</div>
+<div class="card">
+<h3>Weight Trend</h3>
+<div class="chart-wrap"><canvas id="wlogChart"></canvas></div>
+</div>
+<div class="card">
+<h3>History</h3>
+<div id="wlogList"></div>
+</div>
+</div>
+
+<!-- ===== SUPPLEMENTS ===== -->
+<div id="supps" class="panel">
+<div class="card">
+<h3>Daily Supplement Stack</h3>
+<p style="font-size:.82rem;color:var(--text-2);margin-bottom:16px">All supplements are egg-free and whey-free. Consult your physician before starting any supplement regimen.</p>
+<div id="suppList"></div>
+</div>
+</div>
+
+<!-- ===== SCIENCE ===== -->
+<div id="sci" class="panel">
+<div class="card">
+<h3>The Science Behind FORGE OS</h3>
+<p style="font-size:.82rem;color:var(--text-2);margin-bottom:16px">Evidence-based protocols powering your transformation.</p>
+
+<div class="sci-block">
+<h4>Progressive Overload Protocol</h4>
+<p><strong style="color:var(--text)">Weeks 1&ndash;4:</strong> Establish form, hit prescribed rep ranges consistently. Build neural pathways.</p>
+<p><strong style="color:var(--text)">Weeks 5&ndash;8:</strong> Increase load &mdash; +5 lbs upper body / +10 lbs lower body per session when top of rep range is hit.</p>
+<p><strong style="color:var(--text)">Weeks 9&ndash;12:</strong> Add 1 working set per main compound lift. Volume accumulation phase.</p>
+<p><strong style="color:var(--text)">Weeks 13&ndash;16:</strong> Intensity peak &mdash; shift to 4&ndash;6 rep range on compounds with heavier loads.</p>
+</div>
+
+<div class="sci-block">
+<h4>Body Recomposition Science</h4>
+<p>Simultaneous fat loss and muscle preservation is achievable in trained individuals when protein intake is sufficiently high and training stimulus is maintained.</p>
+<p class="cite">Schoenfeld et al. 2018 &mdash; demonstrated ~1g/lb protein intake supports muscle gain while in a caloric deficit.</p>
+</div>
+
+<div class="sci-block">
+<h4>Protein Requirements</h4>
+<p>185g+ daily protein target based on 1.0&ndash;1.1g per pound of body weight. This is the single most important nutritional variable for body recomposition. Protein is kept high on both training and rest days &mdash; muscle protein synthesis doesn't stop when you leave the gym.</p>
+<p class="cite">Meta-analysis consensus: 0.7&ndash;1.0g/lb is the effective range; higher end preferred during caloric deficit.</p>
+</div>
+
+<div class="sci-block">
+<h4>Training Split Rationale</h4>
+<p>Upper/Lower split with dedicated HIIT and active recovery days. This structure allows each muscle group to be trained 2x/week with adequate recovery, which research shows is superior to once-per-week "bro splits" for hypertrophy and fat loss.</p>
+<p class="cite">2024 meta-analysis &mdash; upper/lower splits outperform bro splits for fat loss outcomes in trained populations.</p>
+</div>
+
+<div class="sci-block">
+<h4>HIIT &amp; EPOC Effect</h4>
+<p>Saturday HIIT sessions are strategically placed to maximize Excess Post-Exercise Oxygen Consumption (EPOC). High-intensity intervals create an elevated metabolic rate for 12&ndash;24 hours post-session, contributing to additional calorie burn beyond the session itself.</p>
+<p class="cite">EPOC research &mdash; HIIT creates 12&ndash;24hr elevated calorie burn post-session compared to steady-state cardio.</p>
+</div>
+
+<div class="sci-block">
+<h4>Sleep &amp; Recovery</h4>
+<p>Sleep quality directly impacts hormone profiles critical for recomposition &mdash; growth hormone, testosterone, and cortisol regulation. Magnesium glycinate before bed supports sleep quality, while casein protein provides sustained amino acid release overnight.</p>
+<p class="cite">2020 sleep study &mdash; sleep education alone improved body recomposition outcomes in resistance-trained subjects.</p>
+</div>
+
+<div class="sci-block">
+<h4>Strength Tracking: Epley Formula</h4>
+<p>Estimated One-Rep Max (e1RM) is calculated using the Epley formula:</p>
+<p style="font-family:'JetBrains Mono',monospace;color:var(--acid);font-size:.88rem;padding:8px 12px;background:var(--surface);border-radius:var(--r);display:inline-block;margin:4px 0">e1RM = weight &times; (1 + reps &divide; 30)</p>
+<p>This allows tracking strength progression without maxing out, reducing injury risk while still measuring improvements across sessions.</p>
+</div>
+
+<div class="sci-block">
+<h4>InBody Scan Baseline</h4>
+<p style="color:var(--text)">December 17, 2025 &mdash; Starting Point</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+<div style="font-size:.82rem"><span style="color:var(--text-3)">Weight:</span> <span style="font-family:'JetBrains Mono',monospace">174.7 lbs</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">Body Fat:</span> <span style="font-family:'JetBrains Mono',monospace;color:var(--ember)">16.8%</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">Skeletal Muscle:</span> <span style="font-family:'JetBrains Mono',monospace;color:var(--ice)">83.1 lbs</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">BMI:</span> <span style="font-family:'JetBrains Mono',monospace">25.8</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">Leg Lean Mass:</span> <span style="font-family:'JetBrains Mono',monospace">40.7 lbs</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">ECW Ratio:</span> <span style="font-family:'JetBrains Mono',monospace">0.370</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">Visceral Fat:</span> <span style="font-family:'JetBrains Mono',monospace">Level 5</span></div>
+<div style="font-size:.82rem"><span style="color:var(--text-3)">Height:</span> <span style="font-family:'JetBrains Mono',monospace">5'9"</span></div>
+</div>
+<p style="margin-top:10px"><span style="color:var(--text-3)">Goal:</span> Reach <span style="color:var(--acid);font-family:'JetBrains Mono',monospace">175 lbs</span> at <span style="color:var(--ember);font-family:'JetBrains Mono',monospace">10% BF</span> &mdash; lose ~11.8 lbs fat mass while preserving 83.1 lbs skeletal muscle.</p>
+</div>
+</div>
+</div>
+
+</div><!-- .shell -->
+
+<script>
+// ===== CONSTANTS =====
+const SW=174.7,SBF=16.8,GBF=10,GW=175;
+const START_DATE="2025-12-17";
+
+const KL=["bench","squat","deadlift","ohp","pullup","rdl"];
+const KLL={bench:"Bench",squat:"Squat",deadlift:"Deadlift",ohp:"OHP",pullup:"Pull-up",rdl:"RDL"};
+const KLC={bench:"#b8ff57",squat:"#57c8ff",deadlift:"#ff6b35",ohp:"#a78bfa",pullup:"#ffd166",rdl:"#4dd9ac"};
+
+// ===== STATE =====
+let curDay=0,curMeal=0;
+let WE=[],LL={},MC={};
+let dC=null,lC=null,wC=null,mC=null;
+
+// ===== TRAINING DATA =====
+const DAYS=[
+{n:"Monday — Upper A (Push)",c:false,ex:[
+{id:"bench",n:"Barbell bench press",s:"4",r:"6–8",m:"Arch back, retract scaps. Full ROM. Pause 1s at chest."},
+{id:"incline-db",n:"Incline dumbbell press",s:"3",r:"8–10",m:"30° incline. Control the negative."},
+{id:"ohp",n:"Overhead press",s:"4",r:"6–8",m:"Strict press — no leg drive. Brace core tight."},
+{id:"lat-raise",n:"Lateral raises",s:"3",r:"12–15",m:"Light weight, controlled. Lead with elbows."},
+{id:"pushdown",n:"Cable pushdowns",s:"3",r:"10–12",m:"Lock elbows at sides. Full extension."},
+{id:"skulls",n:"Skull crushers",s:"3",r:"10–12",m:"EZ bar. Lower to forehead, don't flare elbows."},
+{id:"face-pull-m",n:"Face pulls",s:"3",r:"15–20",m:"External rotate at top. Rear delt focus."}
+]},
+{n:"Tuesday — Lower A (Quad Focus)",c:false,ex:[
+{id:"squat",n:"Barbell back squat",s:"4",r:"6–8",m:"High bar. Break at hips and knees simultaneously. Below parallel."},
+{id:"leg-press",n:"Leg press",s:"3",r:"10–12",m:"Feet shoulder-width, mid-platform. Full ROM."},
+{id:"rdl",n:"Romanian deadlift",s:"3",r:"8–10",m:"Hinge at hips. Slight knee bend. Feel hamstring stretch."},
+{id:"bss",n:"Bulgarian split squat",s:"3",r:"10–12",m:"Rear foot elevated. Upright torso. Quad dominant."},
+{id:"leg-ext",n:"Leg extensions",s:"3",r:"12–15",m:"Squeeze at top for 1s. Controlled negative."},
+{id:"seated-calf",n:"Seated calf raises",s:"4",r:"15–20",m:"Full stretch at bottom. Pause at top. Slow eccentric."}
+]},
+{n:"Wednesday — Zone 2 Cardio",c:true,ex:[
+{id:"z2-cardio",n:"Zone 2 cardio",s:"1",r:"30–45 min",m:"Heart rate 120–140 BPM. Conversation pace. Walk, cycle, or elliptical."}
+]},
+{n:"Thursday — Upper B (Pull)",c:false,ex:[
+{id:"pullup",n:"Pull-ups / Lat pulldown",s:"4",r:"6–8",m:"Full dead hang to chin over bar. Add weight when hitting 8 reps."},
+{id:"bb-row",n:"Barbell row",s:"4",r:"6–8",m:"45° torso angle. Pull to lower chest. Squeeze lats."},
+{id:"cable-row",n:"Seated cable row",s:"3",r:"10–12",m:"Close grip. Retract scaps fully. Controlled return."},
+{id:"db-row",n:"Single-arm dumbbell row",s:"3",r:"10–12",m:"Support on bench. Full stretch at bottom."},
+{id:"bb-curl",n:"Barbell curl",s:"3",r:"10–12",m:"No swinging. Control negative for 2s."},
+{id:"hammer",n:"Hammer curls",s:"3",r:"10–12",m:"Neutral grip. Hit brachialis and forearms."},
+{id:"face-pull-t",n:"Face pulls",s:"3",r:"15–20",m:"External rotate at top. Light weight, high reps."}
+]},
+{n:"Friday — Lower B (Posterior)",c:false,ex:[
+{id:"deadlift",n:"Barbell deadlift",s:"4",r:"4–6",m:"Conventional stance. Chest up, lats engaged. Reset between reps."},
+{id:"hip-thrust",n:"Hip thrust",s:"3",r:"10–12",m:"Bench at mid-scapula. Full hip extension. Squeeze glutes 1s."},
+{id:"lunges",n:"Walking lunges",s:"3",r:"12–15",m:"Long stride. Upright torso. Glute and hamstring focus."},
+{id:"leg-curl",n:"Lying leg curls",s:"3",r:"10–12",m:"Controlled. Don't let hips rise off pad."},
+{id:"hack-squat",n:"Hack squat",s:"3",r:"10–12",m:"Feet low on platform. Quad emphasis. Full depth."},
+{id:"standing-calf",n:"Standing calf raises",s:"4",r:"12–15",m:"Full ROM. Pause at top and bottom."}
+]},
+{n:"Saturday — HIIT + Core",c:true,ex:[
+{id:"hiit",n:"HIIT intervals",s:"1",r:"20–25 min",m:"30s all-out / 60s recovery. Bike, rower, or battle ropes."},
+{id:"plank",n:"Plank hold",s:"3",r:"45–60s",m:"Neutral spine. Squeeze everything. No sagging."},
+{id:"hleg-raise",n:"Hanging leg raises",s:"3",r:"12–15",m:"Controlled. No swinging. Curl pelvis up."},
+{id:"woodchop",n:"Cable woodchops",s:"3",r:"12–15",m:"Rotate through thoracic spine. Stable lower body."},
+{id:"ab-wheel",n:"Ab wheel rollout",s:"3",r:"10–12",m:"Go as far as you can control. Engage core throughout."},
+{id:"pallof",n:"Pallof press",s:"3",r:"12–15",m:"Anti-rotation. Press and hold 2s. Brace hard."}
+]},
+{n:"Sunday — Active Recovery",c:true,ex:[
+{id:"recovery",n:"Active recovery",s:"1",r:"30–45 min",m:"Light walking, stretching, foam rolling, yoga, or mobility work. Keep it easy."}
+]}
+];
+
+// ===== MEAL PLAN DATA =====
+const MEALS=[
+{day:"Day 1 — Mon",type:"training",target:2500,title:"Upper A training day",slots:[
+{t:"Breakfast 7am",n:"Greek yogurt power bowl",f:"Greek yogurt 250g · mixed berries 100g · granola 40g · chia seeds 15g · honey 10g",p:38,c:52,fa:14,k:486},
+{t:"Lunch 12pm",n:"Grilled chicken & quinoa plate",f:"Chicken breast 200g · quinoa 120g cooked · roasted broccoli 150g · olive oil 10ml · lemon",p:54,c:38,fa:16,k:512},
+{t:"Dinner 6pm",n:"Salmon teriyaki bowl",f:"Salmon fillet 180g · brown rice 140g cooked · edamame 80g · spinach 60g · teriyaki sauce 20ml",p:48,c:46,fa:18,k:538},
+{t:"Pre-bed 9pm",n:"Casein protein shake",f:"Casein protein 40g · almond butter 15g · almond milk 250ml · banana ½",p:42,c:22,fa:14,k:378}
+]},
+{day:"Day 2 — Tue",type:"training",target:2500,title:"Lower A training day",slots:[
+{t:"Breakfast 7am",n:"Cottage cheese pancakes",f:"Cottage cheese 200g · oat flour 50g · banana 1 · blueberries 80g · maple syrup 10ml",p:36,c:58,fa:10,k:466},
+{t:"Lunch 12pm",n:"Turkey & sweet potato meal prep",f:"Ground turkey 200g · sweet potato 200g · green beans 120g · olive oil 8ml",p:48,c:50,fa:16,k:536},
+{t:"Dinner 6pm",n:"Chicken thigh stir-fry",f:"Chicken thigh 180g · jasmine rice 130g cooked · bell peppers 100g · snap peas 80g · soy sauce 15ml · sesame oil 5ml",p:44,c:48,fa:16,k:512},
+{t:"Pre-bed 9pm",n:"Casein & Greek yogurt mix",f:"Casein protein 35g · Greek yogurt 150g · almonds 20g · dark chocolate chips 10g",p:46,c:18,fa:16,k:396}
+]},
+{day:"Day 3 — Wed",type:"cardio",target:2200,title:"Zone 2 cardio day",slots:[
+{t:"Breakfast 7am",n:"Overnight oats",f:"Oats 60g · almond milk 200ml · pea protein 25g · chia seeds 10g · strawberries 80g",p:34,c:48,fa:12,k:436},
+{t:"Lunch 12pm",n:"Lentil & chicken soup",f:"Red lentils 80g dry · chicken breast 150g · carrots 80g · celery 60g · tomato 100g · olive oil 5ml",p:46,c:42,fa:8,k:424},
+{t:"Dinner 6pm",n:"Tilapia with roasted vegetables",f:"Tilapia 180g · asparagus 120g · cherry tomatoes 100g · brown rice 100g cooked · olive oil 8ml",p:40,c:32,fa:10,k:378},
+{t:"Pre-bed 9pm",n:"Casein shake light",f:"Casein protein 35g · almond milk 200ml · peanut butter 10g",p:36,c:10,fa:10,k:274}
+]},
+{day:"Day 4 — Thu",type:"training",target:2500,title:"Upper B training day",slots:[
+{t:"Breakfast 7am",n:"Pea protein smoothie bowl",f:"Pea protein 30g · frozen mango 100g · spinach 40g · oat milk 200ml · granola 30g · coconut flakes 10g",p:34,c:52,fa:12,k:452},
+{t:"Lunch 12pm",n:"Shrimp & chickpea bowl",f:"Shrimp 200g · chickpeas 120g cooked · cucumber 80g · cherry tomatoes 80g · feta 20g · olive oil 10ml · lemon",p:46,c:32,fa:16,k:456},
+{t:"Dinner 6pm",n:"Lean beef burrito bowl",f:"Lean ground beef 180g · black beans 80g cooked · brown rice 120g cooked · salsa 60g · avocado 40g · lettuce 40g",p:48,c:44,fa:20,k:548},
+{t:"Pre-bed 9pm",n:"Cottage cheese & nuts",f:"Cottage cheese 200g · walnuts 20g · casein protein 25g · cinnamon",p:44,c:10,fa:14,k:338}
+]},
+{day:"Day 5 — Fri",type:"training",target:2500,title:"Lower B training day",slots:[
+{t:"Breakfast 7am",n:"Greek yogurt & oat bowl",f:"Greek yogurt 200g · oats 50g · pea protein 20g · banana 1 · almonds 15g",p:40,c:54,fa:14,k:502},
+{t:"Lunch 12pm",n:"Tuna & rice bowl",f:"Canned tuna 180g · jasmine rice 140g cooked · avocado 50g · cucumber 60g · soy sauce 10ml",p:46,c:42,fa:14,k:478},
+{t:"Dinner 6pm",n:"Chicken breast & pasta",f:"Chicken breast 180g · whole wheat penne 80g dry · marinara sauce 100g · parmesan 15g · spinach 60g",p:50,c:52,fa:14,k:538},
+{t:"Pre-bed 9pm",n:"Casein & almond butter shake",f:"Casein protein 40g · almond butter 12g · almond milk 250ml · cinnamon",p:40,c:12,fa:12,k:312}
+]},
+{day:"Day 6 — Sat",type:"training",target:2500,title:"HIIT + Core day",slots:[
+{t:"Breakfast 7am",n:"Protein oatmeal",f:"Oats 60g · pea protein 30g · almond milk 200ml · banana 1 · walnuts 15g · honey 5g",p:38,c:62,fa:14,k:530},
+{t:"Lunch 12pm",n:"Chicken & lentil bowl",f:"Chicken thigh 170g · green lentils 100g cooked · roasted sweet potato 120g · kale 60g · tahini 10g",p:48,c:46,fa:14,k:502},
+{t:"Dinner 6pm",n:"Ground turkey lettuce wraps",f:"Ground turkey 200g · water chestnuts 60g · carrots 50g · hoisin sauce 15ml · lettuce cups · brown rice 100g cooked",p:44,c:38,fa:12,k:436},
+{t:"Pre-bed 9pm",n:"Casein protein pudding",f:"Casein protein 40g · cottage cheese 100g · cocoa powder 8g · almond milk 100ml",p:48,c:12,fa:6,k:290}
+]},
+{day:"Day 7 — Sun",type:"cardio",target:2200,title:"Active recovery day",slots:[
+{t:"Breakfast 7am",n:"Cottage cheese fruit bowl",f:"Cottage cheese 250g · pineapple 100g · hemp seeds 15g · granola 25g",p:38,c:36,fa:12,k:404},
+{t:"Lunch 12pm",n:"Salmon salad",f:"Salmon 150g · mixed greens 80g · quinoa 80g cooked · avocado 40g · cherry tomatoes 60g · balsamic 10ml",p:38,c:28,fa:18,k:422},
+{t:"Dinner 6pm",n:"Chicken stir-fry light",f:"Chicken breast 160g · broccoli 120g · mushrooms 80g · basmati rice 100g cooked · sesame oil 5ml · soy sauce 10ml",p:42,c:34,fa:8,k:380},
+{t:"Pre-bed 9pm",n:"Casein shake simple",f:"Casein protein 35g · almond milk 200ml · cinnamon",p:34,c:6,fa:4,k:196}
+]}
+];
+
+// ===== SUPPLEMENT DATA =====
+const SUPPS=[
+{name:"Creatine monohydrate",dose:"5g/day",timing:"Any time — mix with water or shake",icon:"💪",color:"var(--acid)"},
+{name:"Pea protein isolate",dose:"1–2 scoops",timing:"As needed to hit 185g daily protein",icon:"🌱",color:"var(--acid)"},
+{name:"Casein protein",dose:"35–40g",timing:"Before bed — slow-release overnight",icon:"🥛",color:"var(--ice)"},
+{name:"Vitamin D3 + K2",dose:"3,000–5,000 IU D3",timing:"Daily with a meal containing fat",icon:"☀️",color:"var(--gold)"},
+{name:"Omega-3 fish oil",dose:"2–3g EPA/DHA",timing:"Daily with meals",icon:"🐟",color:"var(--ice)"},
+{name:"Magnesium glycinate",dose:"400mg",timing:"Before bed — supports sleep quality",icon:"🧠",color:"var(--violet)"},
+{name:"Caffeine",dose:"200mg",timing:"30 min pre-lift, cut off by 2pm",icon:"☕",color:"var(--ember)"},
+{name:"Zinc",dose:"15–25mg",timing:"With dinner — supports testosterone & immunity",icon:"⚡",color:"var(--gold)"},
+{name:"Beta-alanine",dose:"3.2g/day",timing:"Split doses — reduces muscle fatigue",icon:"🔥",color:"var(--ember)"}
+];
+
+// ===== UTILITY FUNCTIONS =====
+function todayStr(){const d=new Date();return d.toISOString().split('T')[0]}
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/864e5)}
+function e1rm(w,r){return w*(1+r/30)}
+
+// ===== TAB SWITCHING =====
+function showTab(id,el){
+document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+if(el)el.classList.add('active');
+if(id==='dash')renderDash();
+if(id==='wlog')renderWL();
+}
+
+// ===== TRAINING TAB =====
+function initTrainDays(){
+const c=document.getElementById('trainDays');
+DAYS.forEach((d,i)=>{
+const t=document.createElement('div');
+t.className='day-tab'+(i===0?' active':'');
+t.textContent=d.n.split(' — ')[0];
+t.onclick=()=>{curDay=i;document.querySelectorAll('#trainDays .day-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');renderTrainDay()};
+c.appendChild(t);
+});
+renderTrainDay();
+}
+
+function renderTrainDay(){
+const day=DAYS[curDay];
+const c=document.getElementById('trainContent');
+let h=`<div class="card"><h3>${day.n}</h3>`;
+if(day.c){
+h+=`<p style="color:var(--text-2);font-size:.85rem;margin-bottom:16px">Active session — no set logging for this day.</p>`;
+}
+day.ex.forEach(ex=>{
+h+=`<div class="ex-card"><h4>${ex.n}</h4>`;
+h+=`<div class="ex-meta">${ex.s} sets × ${ex.r} reps</div>`;
+if(ex.m)h+=`<div class="ex-note">${ex.m}</div>`;
+if(!day.c){
+const sets=parseInt(ex.s);
+for(let i=1;i<=sets;i++){
+const prev=getLastSet(ex.id,i);
+h+=`<div class="set-row">`;
+h+=`<span class="set-num">Set ${i}</span>`;
+h+=`<input type="number" placeholder="${prev?prev.weight:'Weight'}" id="sw_${ex.id}_${i}" step="2.5">`;
+h+=`<input type="number" placeholder="${prev?prev.reps:'Reps'}" id="sr_${ex.id}_${i}">`;
+h+=`<button class="btn btn-ghost btn-sm" onclick="logSet('${ex.id}',${i},'${ex.n}')">Log</button>`;
+h+=`</div>`;
+}
+// PR display
+const pr=getBestE1RM(ex.id);
+if(pr>0)h+=`<div style="margin-top:8px;font-size:.78rem;color:var(--text-3)">Best e1RM: <span style="font-family:'JetBrains Mono',monospace;color:var(--acid)">${pr.toFixed(1)} lbs</span></div>`;
+// Mini chart toggle
+if(LL[ex.id]&&LL[ex.id].length>0){
+h+=`<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="toggleMini('${ex.id}')">Show progression</button>`;
+h+=`<div class="prog-mini" id="mini_${ex.id}" style="display:none"><canvas id="mc_${ex.id}"></canvas></div>`;
+}
+}
+h+=`</div>`;
+});
+h+=`</div>`;
+c.innerHTML=h;
+}
+
+function getLastSet(exId,setNum){
+if(!LL[exId])return null;
+const sets=LL[exId].filter(s=>s.set===setNum);
+return sets.length?sets[sets.length-1]:null;
+}
+
+function getBestE1RM(exId){
+if(!LL[exId]||!LL[exId].length)return 0;
+return Math.max(...LL[exId].map(s=>e1rm(s.weight,s.reps)));
+}
+
+function logSet(exId,setNum,exName){
+const wEl=document.getElementById(`sw_${exId}_${setNum}`);
+const rEl=document.getElementById(`sr_${exId}_${setNum}`);
+const w=parseFloat(wEl.value);
+const r=parseInt(rEl.value);
+if(!w||!r||w<=0||r<=0)return;
+
+const prevBest=getBestE1RM(exId);
+if(!LL[exId])LL[exId]=[];
+LL[exId].push({date:todayStr(),set:setNum,weight:w,reps:r,name:exName});
+
+const newE1=e1rm(w,r);
+if(prevBest>0&&newE1>prevBest){
+// PR!
+wEl.style.borderColor='var(--ember)';
+wEl.style.boxShadow='0 0 0 3px var(--ember-dim)';
+const badge=document.createElement('span');
+badge.className='pr-badge';
+badge.textContent='🔥 NEW PR!';
+wEl.parentElement.appendChild(badge);
+}
+
+wEl.value='';rEl.value='';
+wEl.style.borderColor='var(--acid)';
+setTimeout(()=>{wEl.style.borderColor='';wEl.style.boxShadow=''},1500);
+renderTrainDay();
+}
+
+function toggleMini(exId){
+const wrap=document.getElementById(`mini_${exId}`);
+if(!wrap)return;
+if(wrap.style.display==='none'){
+wrap.style.display='block';
+renderMiniChart(exId);
+}else{
+wrap.style.display='none';
+if(MC[exId]){MC[exId].destroy();delete MC[exId]}
+}
+}
+
+function renderMiniChart(exId){
+if(MC[exId]){MC[exId].destroy()}
+const ctx=document.getElementById(`mc_${exId}`);
+if(!ctx)return;
+const data=LL[exId]||[];
+const dates=[...new Set(data.map(d=>d.date))].sort();
+const vals=dates.map(dt=>{
+const sets=data.filter(s=>s.date===dt);
+return Math.max(...sets.map(s=>e1rm(s.weight,s.reps)));
+});
+MC[exId]=new Chart(ctx,{
+type:'line',
+data:{labels:dates,datasets:[{data:vals,borderColor:KLC[exId]||'#b8ff57',backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:KLC[exId]||'#b8ff57',borderWidth:2}]},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,0.03)'},ticks:{font:{size:10}}}}}
+});
+}
+
+// ===== MEAL PLAN TAB =====
+function initMealDays(){
+const c=document.getElementById('mealDays');
+MEALS.forEach((m,i)=>{
+const t=document.createElement('div');
+t.className='day-tab'+(i===0?' active':'');
+t.textContent=m.day.split(' — ')[1];
+t.onclick=()=>{curMeal=i;document.querySelectorAll('#mealDays .day-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');renderMealDay()};
+c.appendChild(t);
+});
+renderMealDay();
+}
+
+function renderMealDay(){
+const m=MEALS[curMeal];
+const c=document.getElementById('mealContent');
+let totalP=0,totalC=0,totalF=0,totalK=0;
+let h=`<div class="card"><h3>${m.day} — ${m.title}</h3>`;
+h+=`<p style="font-size:.78rem;color:var(--text-3);margin-bottom:14px">${m.type==='training'?'Training day':'Cardio / rest day'} · Target: ${m.target} kcal</p>`;
+m.slots.forEach(s=>{
+totalP+=s.p;totalC+=s.c;totalF+=s.fa;totalK+=s.k;
+h+=`<div class="meal-card">`;
+h+=`<h4>${s.t}</h4>`;
+h+=`<div class="meal-name">${s.n}</div>`;
+h+=`<div class="meal-foods">${s.f}</div>`;
+h+=`<div class="macro-row">`;
+h+=`<span class="macro-pill macro-p">P: ${s.p}g</span>`;
+h+=`<span class="macro-pill macro-c">C: ${s.c}g</span>`;
+h+=`<span class="macro-pill macro-f">F: ${s.fa}g</span>`;
+h+=`<span class="macro-pill macro-k">${s.k} kcal</span>`;
+h+=`</div></div>`;
+});
+h+=`<div class="day-total">`;
+h+=`<div><span class="dt-label">Daily Totals</span></div>`;
+h+=`<div style="display:flex;gap:16px;align-items:center">`;
+h+=`<span class="macro-pill macro-p">P: ${totalP}g</span>`;
+h+=`<span class="macro-pill macro-c">C: ${totalC}g</span>`;
+h+=`<span class="macro-pill macro-f">F: ${totalF}g</span>`;
+const diff=totalK-m.target;
+const diffColor=Math.abs(diff)<=30?'var(--acid)':diff>0?'var(--gold)':'var(--gold)';
+h+=`<span class="dt-val" style="color:${Math.abs(diff)<=30?'var(--text)':'var(--gold)'}">${totalK} kcal</span>`;
+if(Math.abs(diff)>30)h+=`<span style="font-size:.72rem;color:var(--gold)">(${diff>0?'+':''}${diff})</span>`;
+h+=`</div></div>`;
+h+=`</div>`;
+c.innerHTML=h;
+}
+
+// ===== SUPPLEMENT TAB =====
+function initSupps(){
+const c=document.getElementById('suppList');
+SUPPS.forEach(s=>{
+c.innerHTML+=`<div class="supp-card">
+<div class="supp-icon" style="background:${s.color}20;color:${s.color}">${s.icon}</div>
+<div class="supp-info">
+<div class="supp-name">${s.name}</div>
+<div class="supp-dose">${s.dose}</div>
+<div class="supp-timing">${s.timing}</div>
+</div></div>`;
+});
+}
+
+// ===== WEIGHT LOG =====
+function addWeight(){
+const date=document.getElementById('wlDate').value||todayStr();
+const w=parseFloat(document.getElementById('wlWeight').value);
+const bf=parseFloat(document.getElementById('wlBF').value)||null;
+if(!w||w<=0)return;
+
+// Remove existing entry for same date
+WE=WE.filter(e=>e.date!==date);
+WE.push({date,weight:w,bf});
+WE.sort((a,b)=>a.date.localeCompare(b.date));
+
+document.getElementById('wlWeight').value='';
+document.getElementById('wlBF').value='';
+renderWL();
+renderDash();
+}
+
+function renderWL(){
+// List
+const list=document.getElementById('wlogList');
+if(WE.length===0){
+list.innerHTML='<p style="color:var(--text-3);font-size:.85rem;padding:12px">No entries yet. Log your first weight above.</p>';
+}else{
+let h='';
+[...WE].reverse().forEach((e,i,arr)=>{
+const prev=arr[i+1];
+const delta=prev?(e.weight-prev.weight).toFixed(1):null;
+h+=`<div class="wl-entry">`;
+h+=`<span class="wl-date">${e.date}</span>`;
+h+=`<span class="wl-weight">${e.weight}</span>`;
+h+=`<span class="wl-bf">${e.bf?e.bf+'%':'—'}</span>`;
+if(delta!==null){
+const col=parseFloat(delta)<=0?'var(--acid)':'var(--ember)';
+h+=`<span class="wl-delta" style="color:${col};background:${parseFloat(delta)<=0?'var(--acid-dim)':'var(--ember-dim)'}">${parseFloat(delta)>0?'+':''}${delta}</span>`;
+}
+h+=`</div>`;
+});
+list.innerHTML=h;
+}
+
+// Chart
+renderWLChart();
+}
+
+function renderWLChart(){
+const ctx=document.getElementById('wlogChart');
+if(!ctx)return;
+if(wC){wC.destroy()}
+if(WE.length===0)return;
+
+const labels=WE.map(e=>e.date);
+const weights=WE.map(e=>e.weight);
+const bfs=WE.map(e=>e.bf);
+const hasBF=bfs.some(b=>b!==null);
+
+const minW=Math.min(...weights)-3;
+const maxW=Math.max(...weights)+3;
+
+const datasets=[
+{label:'Weight (lbs)',data:weights,borderColor:'#b8ff57',backgroundColor:'rgba(184,255,87,0.08)',tension:.3,pointRadius:4,pointBackgroundColor:'#b8ff57',borderWidth:2,yAxisID:'y',fill:true},
+{label:'Start',data:Array(labels.length).fill(SW),borderColor:'rgba(255,255,255,0.15)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'},
+{label:'Goal',data:Array(labels.length).fill(GW),borderColor:'rgba(87,200,255,0.3)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'}
+];
+const scales={x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{position:'left',min:minW,max:maxW,grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>v+' lbs'}}};
+if(hasBF){
+datasets.push({label:'Body Fat %',data:bfs,borderColor:'#ff6b35',backgroundColor:'transparent',tension:.3,pointRadius:4,pointBackgroundColor:'#ff6b35',borderWidth:2,yAxisID:'y2',spanGaps:true});
+scales.y2={position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}};
+}
+
+wC=new Chart(ctx,{
+type:'line',data:{labels,datasets},
+options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}},scales}
+});
+}
+
+// ===== DASHBOARD =====
+function renderDash(){
+const latest=WE.length?WE[WE.length-1]:null;
+const latestW=latest?latest.weight:SW;
+const latestBF=latest&&latest.bf?latest.bf:SBF;
+
+// Stat cards
+document.getElementById('dWeight').textContent=latest?latestW.toFixed(1):'--';
+document.getElementById('dWeightSub').textContent=latest?`Started: ${SW} lbs`:'Log your first entry';
+document.getElementById('dBF').textContent=latest&&latest.bf?latestBF.toFixed(1)+'%':'--';
+
+const fatMass=latestW*(latestBF/100);
+const startFat=SW*(SBF/100);
+const fatLost=startFat-fatMass;
+const targetFatLoss=startFat-(GW*GBF/100);
+document.getElementById('dFat').textContent=fatLost>0?fatLost.toFixed(1)+' lbs':'--';
+document.getElementById('dFatSub').textContent=`of ${targetFatLoss.toFixed(1)} lbs target`;
+
+// PR count
+let prCount=0;
+KL.forEach(k=>{
+if(!LL[k]||LL[k].length<2)return;
+const dates=[...new Set(LL[k].map(s=>s.date))].sort();
+if(dates.length<2)return;
+let runningBest=0;
+dates.forEach(dt=>{
+const sets=LL[k].filter(s=>s.date===dt);
+const best=Math.max(...sets.map(s=>e1rm(s.weight,s.reps)));
+if(runningBest>0&&best>runningBest)prCount++;
+if(best>runningBest)runningBest=best;
+});
+});
+document.getElementById('dPR').textContent=prCount;
+
+// Health score
+let ws=50,ss=30,cs=0,ko=0;
+if(latest){
+ws=Math.max(0,Math.min(100,50+Math.round((fatLost/targetFatLoss)*50)));
+if(latest.bf)cs=Math.max(0,Math.min(100,Math.round(((SBF-latestBF)/(SBF-GBF))*100)));
+const daysSince=Math.max(7,daysBetween(START_DATE,todayStr()));
+ko=Math.min(100,Math.round((WE.length/daysSince)*100));
+}
+
+// Strength score
+let sessionDays=new Set();
+Object.values(LL).forEach(arr=>arr.forEach(s=>sessionDays.add(s.date)));
+ss=Math.min(100,30+prCount*12+Math.min(sessionDays.size*3,28));
+
+const overall=Math.round(ws*0.25+ss*0.30+cs*0.25+ko*0.20);
+let scoreColor,scoreLbl;
+if(overall>=85){scoreColor='#b8ff57';scoreLbl='Elite Performance'}
+else if(overall>=70){scoreColor='#57c8ff';scoreLbl='On Track'}
+else if(overall>=50){scoreColor='#ffd166';scoreLbl='Building Momentum'}
+else if(overall>=30){scoreColor='#ff6b35';scoreLbl='Getting Started'}
+else{scoreColor='#4a5a6a';scoreLbl='Log Data to Begin'}
+
+document.getElementById('scoreNum').textContent=overall;
+document.getElementById('scoreNum').style.color=scoreColor;
+document.getElementById('scoreLbl').textContent=scoreLbl;
+
+// Pillars
+document.getElementById('pW').style.width=ws+'%';document.getElementById('pWv').textContent=ws;
+document.getElementById('pS').style.width=ss+'%';document.getElementById('pSv').textContent=ss;
+document.getElementById('pC').style.width=cs+'%';document.getElementById('pCv').textContent=cs;
+document.getElementById('pK').style.width=ko+'%';document.getElementById('pKv').textContent=ko;
+
+// Donut
+renderDonut(overall,scoreColor);
+// Weight chart
+renderDashWeightChart();
+// Lift chart
+renderLiftChart();
+}
+
+function renderDonut(score,color){
+const ctx=document.getElementById('donutC');
+if(dC){dC.destroy()}
+dC=new Chart(ctx,{
+type:'doughnut',
+data:{datasets:[{data:[score,100-score],backgroundColor:[color,'rgba(255,255,255,0.04)'],borderWidth:0}]},
+options:{responsive:true,maintainAspectRatio:false,circumference:270,rotation:225,cutout:'80%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+});
+}
+
+function renderDashWeightChart(){
+const ctx=document.getElementById('weightChart');
+if(mC){mC.destroy()}
+if(WE.length===0){
+mC=new Chart(ctx,{type:'line',data:{labels:['Start'],datasets:[{data:[SW],borderColor:'rgba(255,255,255,0.1)',pointRadius:4,pointBackgroundColor:'#b8ff57',borderWidth:1}]},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{grid:{color:'rgba(255,255,255,0.03)'}}}}});
+return;
+}
+const labels=WE.map(e=>e.date);
+const weights=WE.map(e=>e.weight);
+const bfs=WE.map(e=>e.bf);
+const hasBF=bfs.some(b=>b!==null);
+const minW=Math.min(...weights,GW)-3;
+const maxW=Math.max(...weights,SW)+3;
+const datasets=[
+{label:'Weight',data:weights,borderColor:'#b8ff57',backgroundColor:'rgba(184,255,87,0.08)',tension:.3,pointRadius:3,pointBackgroundColor:'#b8ff57',borderWidth:2,yAxisID:'y',fill:true},
+{label:'Start',data:Array(labels.length).fill(SW),borderColor:'rgba(255,255,255,0.15)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'},
+{label:'Goal',data:Array(labels.length).fill(GW),borderColor:'rgba(87,200,255,0.3)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'}
+];
+const scales={x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{position:'left',min:minW,max:maxW,grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>v+' lbs'}}};
+if(hasBF){
+datasets.push({label:'Body Fat %',data:bfs,borderColor:'#ff6b35',backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:'#ff6b35',borderWidth:2,yAxisID:'y2',spanGaps:true});
+scales.y2={position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}};
+}
+mC=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}},scales}});
+}
+
+function renderLiftChart(){
+const ctx=document.getElementById('liftChart');
+if(lC){lC.destroy()}
+// Gather all dates across key lifts
+const allDates=new Set();
+KL.forEach(k=>{if(LL[k])LL[k].forEach(s=>allDates.add(s.date))});
+const dates=[...allDates].sort();
+if(dates.length===0){
+lC=new Chart(ctx,{type:'line',data:{labels:['No data'],datasets:[{data:[0],borderColor:'rgba(255,255,255,0.05)',pointRadius:0}]},
+options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{grid:{color:'rgba(255,255,255,0.03)'}}}}});
+return;
+}
+const datasets=[];
+KL.forEach(k=>{
+if(!LL[k]||!LL[k].length)return;
+const vals=dates.map(dt=>{
+const sets=LL[k].filter(s=>s.date===dt);
+return sets.length?Math.max(...sets.map(s=>e1rm(s.weight,s.reps))):null;
+});
+datasets.push({label:KLL[k],data:vals,borderColor:KLC[k],backgroundColor:'transparent',tension:.3,pointRadius:3,pointBackgroundColor:KLC[k],borderWidth:2,spanGaps:true});
+});
+lC=new Chart(ctx,{type:'line',data:{labels:dates,datasets},
+options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}},
+scales:{x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>v+' lbs'}}}}});
+}
+
+// ===== INIT =====
+Chart.defaults.color='#4a5a6a';
+Chart.defaults.borderColor='rgba(255,255,255,0.05)';
+
+document.getElementById('wlDate').value=todayStr();
+initTrainDays();
+initMealDays();
+initSupps();
+renderDash();
+</script>
+</body>
+</html>
