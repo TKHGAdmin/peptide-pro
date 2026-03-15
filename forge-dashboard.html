@@ -6,6 +6,7 @@
 <title>FORGE OS — Thomas Transformation Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -166,6 +167,75 @@ label{display:block;font-size:.75rem;color:var(--text-3);text-transform:uppercas
 .wl-bf{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--ember);min-width:60px}
 .wl-delta{font-size:.78rem;padding:3px 8px;border-radius:8px;font-family:'JetBrains Mono',monospace}
 
+/* Settings overlay */
+.setup-overlay{position:fixed;inset:0;z-index:1000;background:rgba(8,10,12,0.96);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s;pointer-events:none}
+.setup-overlay.open{opacity:1;pointer-events:all}
+.setup-box{width:680px;max-width:94vw;max-height:90vh;overflow-y:auto;background:var(--surface);border:1px solid var(--rim-md);border-radius:var(--r-xl);padding:0;position:relative}
+.setup-box::-webkit-scrollbar{width:6px}
+.setup-box::-webkit-scrollbar-thumb{background:var(--rim-md);border-radius:3px}
+
+/* Stepper header */
+.setup-head{padding:28px 32px 20px;border-bottom:1px solid var(--rim)}
+.setup-head h2{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;color:var(--acid);margin-bottom:4px}
+.setup-head p{font-size:.82rem;color:var(--text-3)}
+.stepper{display:flex;gap:6px;margin-top:16px}
+.stepper-dot{flex:1;height:4px;border-radius:2px;background:var(--depth);transition:background .3s}
+.stepper-dot.done{background:var(--acid)}
+.stepper-dot.active{background:var(--acid);box-shadow:0 0 8px var(--acid-glow)}
+
+/* Setup body */
+.setup-body{padding:28px 32px}
+.setup-step{display:none;animation:fU .25s ease}
+.setup-step.active{display:block}
+.setup-step h3{font-size:1rem;font-weight:600;margin-bottom:6px}
+.setup-step .step-desc{font-size:.82rem;color:var(--text-2);margin-bottom:20px}
+
+/* Goal cards grid */
+.goal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.goal-card{background:var(--depth);border:2px solid var(--rim);border-radius:var(--r-lg);padding:18px 16px;cursor:pointer;transition:all .2s;text-align:center;user-select:none}
+.goal-card:hover{border-color:var(--rim-bright);transform:translateY(-2px)}
+.goal-card.selected{border-color:var(--acid);background:var(--acid-dim);box-shadow:0 0 16px var(--acid-glow)}
+.goal-card .gc-icon{font-size:1.8rem;margin-bottom:8px}
+.goal-card .gc-title{font-size:.88rem;font-weight:600;margin-bottom:4px}
+.goal-card .gc-desc{font-size:.72rem;color:var(--text-3);line-height:1.4}
+.goal-card.selected .gc-title{color:var(--acid)}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--rim-md);border-radius:var(--r-lg);padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;background:var(--depth);margin-bottom:16px}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--acid);background:var(--acid-dim)}
+.upload-zone .uz-icon{font-size:2.4rem;margin-bottom:10px;opacity:.6}
+.upload-zone .uz-title{font-size:.92rem;font-weight:500;margin-bottom:4px}
+.upload-zone .uz-sub{font-size:.75rem;color:var(--text-3)}
+.upload-zone.has-file{border-color:var(--acid);border-style:solid}
+.upload-zone.has-file .uz-icon{opacity:1}
+.upload-result{background:var(--depth);border:1px solid var(--rim);border-radius:var(--r);padding:14px;margin-top:12px;font-size:.82rem}
+.upload-result .ur-label{font-size:.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.upload-result .ur-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.upload-result .ur-item{display:flex;justify-content:space-between;padding:4px 0}
+.upload-result .ur-key{color:var(--text-2)}
+.upload-result .ur-val{font-family:'JetBrains Mono',monospace;color:var(--acid)}
+
+/* Setup footer */
+.setup-foot{display:flex;justify-content:space-between;align-items:center;padding:20px 32px;border-top:1px solid var(--rim)}
+.setup-foot .step-count{font-size:.78rem;color:var(--text-3)}
+
+/* Settings gear */
+.gear-btn{position:absolute;top:4px;right:0;background:none;border:1px solid var(--rim);border-radius:var(--r);width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-3);transition:all .2s;font-size:1.1rem}
+.gear-btn:hover{border-color:var(--rim-md);color:var(--text)}
+.header-row{display:flex;align-items:center;justify-content:space-between;position:relative}
+
+/* Range slider custom */
+.range-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.range-row label{min-width:120px;margin-bottom:0}
+.range-row input[type=range]{flex:1;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--depth);outline:none;border:none;padding:0}
+.range-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--acid);cursor:pointer;border:2px solid var(--surface)}
+.range-row .range-val{font-family:'JetBrains Mono',monospace;font-size:.88rem;min-width:36px;text-align:center;color:var(--acid)}
+
+/* Category header in settings */
+.cat-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--rim)}
+.cat-header .cat-icon{font-size:1.4rem}
+.cat-header h3{margin-bottom:0}
+
 /* Responsive */
 @media(max-width:640px){
 .shell{padding:16px 12px 40px}
@@ -175,15 +245,265 @@ label{display:block;font-size:.75rem;color:var(--text-3);text-transform:uppercas
 .form-row{grid-template-columns:1fr 1fr}
 .tabs{gap:2px;padding:3px}
 .tab{padding:8px 12px;font-size:.78rem}
+.setup-head,.setup-body,.setup-foot{padding-left:18px;padding-right:18px}
+.goal-grid{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
 <body>
+<!-- ===== SETUP WIZARD OVERLAY ===== -->
+<div class="setup-overlay" id="setupOverlay">
+<div class="setup-box">
+<div class="setup-head">
+<h2>FORGE OS SETUP</h2>
+<p>Configure your goals to build a personalized plan</p>
+<div class="stepper" id="stepper"></div>
+</div>
+<div class="setup-body" id="setupBody">
+
+<!-- Step 1: Profile -->
+<div class="setup-step active" data-step="0">
+<div class="cat-header"><span class="cat-icon">&#128100;</span><h3>Your Profile</h3></div>
+<p class="step-desc">Basic info to calibrate your plan. All data stays in your browser.</p>
+<div class="form-row">
+<div class="form-group"><label>Name</label><input type="text" id="sName" placeholder="Thomas"></div>
+<div class="form-group"><label>Age</label><input type="number" id="sAge" placeholder="30"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Sex</label><select id="sSex"><option value="male">Male</option><option value="female">Female</option></select></div>
+<div class="form-group"><label>Height</label><input type="text" id="sHeight" placeholder='5\'9"'></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Current Weight (lbs)</label><input type="number" id="sCurWeight" step="0.1" placeholder="174.7"></div>
+<div class="form-group"><label>Current Body Fat % (est.)</label><input type="number" id="sCurBF" step="0.1" placeholder="16.8"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Goal Weight (lbs)</label><input type="number" id="sGoalWeight" step="0.1" placeholder="175"></div>
+<div class="form-group"><label>Goal Body Fat %</label><input type="number" id="sGoalBF" step="0.1" placeholder="10"></div>
+</div>
+</div>
+
+<!-- Step 2: Fitness Goals -->
+<div class="setup-step" data-step="1">
+<div class="cat-header"><span class="cat-icon">&#127947;</span><h3>Fitness Goals</h3></div>
+<p class="step-desc">Select all that apply. Your primary goal shapes your training split.</p>
+<div class="goal-grid" id="fitnessGoals">
+<div class="goal-card" data-goal="recomp" onclick="toggleGoal(this)">
+<div class="gc-icon">&#9878;</div>
+<div class="gc-title">Body Recomposition</div>
+<div class="gc-desc">Lose fat while building muscle simultaneously</div>
+</div>
+<div class="goal-card" data-goal="muscle" onclick="toggleGoal(this)">
+<div class="gc-icon">&#128170;</div>
+<div class="gc-title">Build Muscle</div>
+<div class="gc-desc">Maximize hypertrophy and lean mass gains</div>
+</div>
+<div class="goal-card" data-goal="fatloss" onclick="toggleGoal(this)">
+<div class="gc-icon">&#128293;</div>
+<div class="gc-title">Lose Fat</div>
+<div class="gc-desc">Aggressive cut while preserving muscle</div>
+</div>
+<div class="goal-card" data-goal="strength" onclick="toggleGoal(this)">
+<div class="gc-icon">&#127942;</div>
+<div class="gc-title">Build Strength</div>
+<div class="gc-desc">Push max lifts and compound PRs</div>
+</div>
+<div class="goal-card" data-goal="endurance" onclick="toggleGoal(this)">
+<div class="gc-icon">&#127939;</div>
+<div class="gc-title">Improve Endurance</div>
+<div class="gc-desc">Boost cardiovascular fitness and stamina</div>
+</div>
+<div class="goal-card" data-goal="general" onclick="toggleGoal(this)">
+<div class="gc-icon">&#10024;</div>
+<div class="gc-title">General Health</div>
+<div class="gc-desc">Balanced approach to overall fitness</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Training Days per Week</label>
+<select id="sTrainDays">
+<option value="3">3 days</option>
+<option value="4" selected>4 days</option>
+<option value="5">5 days</option>
+<option value="6">6 days</option>
+</select></div>
+<div class="form-group"><label>Experience Level</label>
+<select id="sExperience">
+<option value="beginner">Beginner (&lt;1 year)</option>
+<option value="intermediate" selected>Intermediate (1-3 years)</option>
+<option value="advanced">Advanced (3+ years)</option>
+</select></div>
+</div>
+</div>
+
+<!-- Step 3: Nutrition -->
+<div class="setup-step" data-step="2">
+<div class="cat-header"><span class="cat-icon">&#127860;</span><h3>Nutrition Preferences</h3></div>
+<p class="step-desc">Dietary needs and meal structure to customize your nutrition plan.</p>
+<div class="goal-grid" id="dietGoals">
+<div class="goal-card" data-goal="no-eggs" onclick="toggleGoal(this)">
+<div class="gc-icon">&#128038;</div>
+<div class="gc-title">Egg-Free</div>
+<div class="gc-desc">No eggs or egg-based products</div>
+</div>
+<div class="goal-card" data-goal="no-dairy" onclick="toggleGoal(this)">
+<div class="gc-icon">&#129472;</div>
+<div class="gc-title">Dairy-Free</div>
+<div class="gc-desc">No milk, cheese, or dairy</div>
+</div>
+<div class="goal-card" data-goal="no-whey" onclick="toggleGoal(this)">
+<div class="gc-icon">&#129371;</div>
+<div class="gc-title">No Whey</div>
+<div class="gc-desc">Plant-based protein sources only</div>
+</div>
+<div class="goal-card" data-goal="no-gluten" onclick="toggleGoal(this)">
+<div class="gc-icon">&#127806;</div>
+<div class="gc-title">Gluten-Free</div>
+<div class="gc-desc">Avoid wheat and gluten grains</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Meals Per Day</label>
+<select id="sMealCount">
+<option value="3">3 meals</option>
+<option value="4" selected>4 meals (incl. pre-bed)</option>
+<option value="5">5 meals</option>
+</select></div>
+<div class="form-group"><label>Calorie Strategy</label>
+<select id="sCalStrat">
+<option value="deficit">Calorie Deficit (cut)</option>
+<option value="maintenance">Maintenance</option>
+<option value="surplus">Calorie Surplus (bulk)</option>
+<option value="recomp" selected>Recomp (cycle)</option>
+</select></div>
+</div>
+<div class="range-row">
+<label>Protein Target</label>
+<input type="range" id="sProtein" min="120" max="250" value="185" oninput="document.getElementById('sProteinVal').textContent=this.value+'g'">
+<span class="range-val" id="sProteinVal">185g</span>
+</div>
+</div>
+
+<!-- Step 4: Longevity -->
+<div class="setup-step" data-step="3">
+<div class="cat-header"><span class="cat-icon">&#128154;</span><h3>Longevity Goals</h3></div>
+<p class="step-desc">Long-term health priorities that influence supplements and lifestyle recommendations.</p>
+<div class="goal-grid" id="longevityGoals">
+<div class="goal-card" data-goal="joints" onclick="toggleGoal(this)">
+<div class="gc-icon">&#129471;</div>
+<div class="gc-title">Joint Health</div>
+<div class="gc-desc">Protect joints, reduce inflammation, mobility</div>
+</div>
+<div class="goal-card" data-goal="cardio-health" onclick="toggleGoal(this)">
+<div class="gc-icon">&#10084;</div>
+<div class="gc-title">Cardiovascular</div>
+<div class="gc-desc">Heart health, blood pressure, lipids</div>
+</div>
+<div class="goal-card" data-goal="hormones" onclick="toggleGoal(this)">
+<div class="gc-icon">&#9889;</div>
+<div class="gc-title">Hormone Optimization</div>
+<div class="gc-desc">Testosterone, cortisol, thyroid balance</div>
+</div>
+<div class="goal-card" data-goal="cognitive" onclick="toggleGoal(this)">
+<div class="gc-icon">&#129504;</div>
+<div class="gc-title">Cognitive Health</div>
+<div class="gc-desc">Brain health, focus, neuroprotection</div>
+</div>
+<div class="goal-card" data-goal="gut" onclick="toggleGoal(this)">
+<div class="gc-icon">&#129388;</div>
+<div class="gc-title">Gut Health</div>
+<div class="gc-desc">Microbiome, digestion, nutrient absorption</div>
+</div>
+<div class="goal-card" data-goal="anti-aging" onclick="toggleGoal(this)">
+<div class="gc-icon">&#9203;</div>
+<div class="gc-title">Anti-Aging</div>
+<div class="gc-desc">Cellular repair, NAD+, telomere support</div>
+</div>
+</div>
+</div>
+
+<!-- Step 5: Sleep -->
+<div class="setup-step" data-step="4">
+<div class="cat-header"><span class="cat-icon">&#128164;</span><h3>Sleep &amp; Recovery</h3></div>
+<p class="step-desc">Sleep quality directly impacts recovery, hormone levels, and body composition.</p>
+<div class="goal-grid" id="sleepGoals">
+<div class="goal-card" data-goal="sleep-optimize" onclick="toggleGoal(this)">
+<div class="gc-icon">&#127769;</div>
+<div class="gc-title">Optimize Sleep</div>
+<div class="gc-desc">Improve overall sleep quality and duration</div>
+</div>
+<div class="goal-card" data-goal="sleep-fall" onclick="toggleGoal(this)">
+<div class="gc-icon">&#128565;</div>
+<div class="gc-title">Trouble Falling Asleep</div>
+<div class="gc-desc">Takes 30+ min to fall asleep</div>
+</div>
+<div class="goal-card" data-goal="sleep-wake" onclick="toggleGoal(this)">
+<div class="gc-icon">&#128556;</div>
+<div class="gc-title">Wake Frequently</div>
+<div class="gc-desc">Waking up multiple times per night</div>
+</div>
+<div class="goal-card" data-goal="sleep-energy" onclick="toggleGoal(this)">
+<div class="gc-icon">&#129393;</div>
+<div class="gc-title">Low Energy</div>
+<div class="gc-desc">Not feeling rested despite sleeping</div>
+</div>
+</div>
+<div class="range-row">
+<label>Sleep Target (hrs)</label>
+<input type="range" id="sSleepHrs" min="6" max="10" step="0.5" value="8" oninput="document.getElementById('sSleepVal').textContent=this.value+'h'">
+<span class="range-val" id="sSleepVal">8h</span>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Typical Bedtime</label><input type="time" id="sBedtime" value="22:30"></div>
+<div class="form-group"><label>Typical Wake Time</label><input type="time" id="sWakeTime" value="06:30"></div>
+</div>
+</div>
+
+<!-- Step 6: InBody Scan Upload -->
+<div class="setup-step" data-step="5">
+<div class="cat-header"><span class="cat-icon">&#128202;</span><h3>InBody Scan Upload</h3></div>
+<p class="step-desc">Upload your InBody scan PDF to auto-populate your baseline metrics. Or skip to use manual entries.</p>
+<div class="upload-zone" id="uploadZone" onclick="document.getElementById('pdfInput').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+<div class="uz-icon">&#128196;</div>
+<div class="uz-title" id="uzTitle">Drop InBody PDF here or click to browse</div>
+<div class="uz-sub">Supports InBody 270, 370, 570, 770 scan exports</div>
+<input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="handlePDF(this.files[0])">
+</div>
+<div id="uploadResult" style="display:none"></div>
+<div style="margin-top:16px">
+<p style="font-size:.82rem;color:var(--text-3);margin-bottom:10px">Or enter key metrics manually:</p>
+<div class="form-row">
+<div class="form-group"><label>Skeletal Muscle Mass (lbs)</label><input type="number" id="sSmm" step="0.1" placeholder="83.1"></div>
+<div class="form-group"><label>Visceral Fat Level</label><input type="number" id="sVisceral" step="1" placeholder="5"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>BMI</label><input type="number" id="sBmi" step="0.1" placeholder="25.8"></div>
+<div class="form-group"><label>ECW Ratio</label><input type="number" id="sEcw" step="0.001" placeholder="0.370"></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="setup-foot">
+<span class="step-count" id="stepCount">Step 1 of 6</span>
+<div style="display:flex;gap:8px">
+<button class="btn btn-ghost" id="btnPrev" onclick="wizStep(-1)" style="display:none">Back</button>
+<button class="btn btn-acid" id="btnNext" onclick="wizStep(1)">Next &rarr;</button>
+</div>
+</div>
+</div>
+</div>
+
 <div class="amb amb1"></div>
 <div class="amb amb2"></div>
 <div class="shell">
+<div class="header-row">
+<div>
 <div class="logo">FORGE OS <span>v5.0</span></div>
-<div class="tagline">Thomas Transformation Protocol &mdash; 16-Week Body Recomposition</div>
+<div class="tagline" id="taglineText">Thomas Transformation Protocol &mdash; 16-Week Body Recomposition</div>
+</div>
+<button class="gear-btn" onclick="openSetup()" title="Settings">&#9881;</button>
+</div>
 
 <div class="tabs">
 <div class="tab active" onclick="showTab('dash',this)">Dashboard</div>
@@ -390,6 +710,579 @@ label{display:block;font-size:.75rem;color:var(--text-3);text-transform:uppercas
 </div><!-- .shell -->
 
 <script>
+// ===== SETUP WIZARD =====
+const TOTAL_STEPS=6;
+let wizCur=0;
+
+// User profile (defaults)
+let UP={
+name:'Thomas',age:30,sex:'male',height:'5\'9"',
+curWeight:174.7,curBF:16.8,goalWeight:175,goalBF:10,
+fitnessGoals:[],trainDays:4,experience:'intermediate',
+dietGoals:[],mealCount:4,calStrat:'recomp',protein:185,
+longevityGoals:[],
+sleepGoals:[],sleepHrs:8,bedtime:'22:30',wakeTime:'06:30',
+smm:83.1,visceral:5,bmi:25.8,ecw:0.370,
+inbodyData:null
+};
+
+function loadProfile(){
+const s=localStorage.getItem('forge_profile');
+if(s){try{UP=JSON.parse(s);return true}catch(e){}}
+return false;
+}
+function saveProfile(){localStorage.setItem('forge_profile',JSON.stringify(UP))}
+
+function openSetup(){
+wizCur=0;
+populateSetupFromProfile();
+renderWizStep();
+document.getElementById('setupOverlay').classList.add('open');
+}
+function closeSetup(){document.getElementById('setupOverlay').classList.remove('open')}
+
+function populateSetupFromProfile(){
+document.getElementById('sName').value=UP.name||'';
+document.getElementById('sAge').value=UP.age||'';
+document.getElementById('sSex').value=UP.sex||'male';
+document.getElementById('sHeight').value=UP.height||'';
+document.getElementById('sCurWeight').value=UP.curWeight||'';
+document.getElementById('sCurBF').value=UP.curBF||'';
+document.getElementById('sGoalWeight').value=UP.goalWeight||'';
+document.getElementById('sGoalBF').value=UP.goalBF||'';
+document.getElementById('sTrainDays').value=UP.trainDays||4;
+document.getElementById('sExperience').value=UP.experience||'intermediate';
+document.getElementById('sMealCount').value=UP.mealCount||4;
+document.getElementById('sCalStrat').value=UP.calStrat||'recomp';
+document.getElementById('sProtein').value=UP.protein||185;
+document.getElementById('sProteinVal').textContent=(UP.protein||185)+'g';
+document.getElementById('sSleepHrs').value=UP.sleepHrs||8;
+document.getElementById('sSleepVal').textContent=(UP.sleepHrs||8)+'h';
+document.getElementById('sBedtime').value=UP.bedtime||'22:30';
+document.getElementById('sWakeTime').value=UP.wakeTime||'06:30';
+document.getElementById('sSmm').value=UP.smm||'';
+document.getElementById('sVisceral').value=UP.visceral||'';
+document.getElementById('sBmi').value=UP.bmi||'';
+document.getElementById('sEcw').value=UP.ecw||'';
+// Restore goal card selections
+['fitnessGoals','dietGoals','longevityGoals','sleepGoals'].forEach(key=>{
+const containerId={fitnessGoals:'fitnessGoals',dietGoals:'dietGoals',longevityGoals:'longevityGoals',sleepGoals:'sleepGoals'}[key];
+document.querySelectorAll('#'+containerId+' .goal-card').forEach(c=>{
+c.classList.toggle('selected',(UP[key]||[]).includes(c.dataset.goal));
+});
+});
+}
+
+function collectProfile(){
+UP.name=document.getElementById('sName').value||'User';
+UP.age=parseInt(document.getElementById('sAge').value)||30;
+UP.sex=document.getElementById('sSex').value;
+UP.height=document.getElementById('sHeight').value;
+UP.curWeight=parseFloat(document.getElementById('sCurWeight').value)||174.7;
+UP.curBF=parseFloat(document.getElementById('sCurBF').value)||16.8;
+UP.goalWeight=parseFloat(document.getElementById('sGoalWeight').value)||175;
+UP.goalBF=parseFloat(document.getElementById('sGoalBF').value)||10;
+UP.trainDays=parseInt(document.getElementById('sTrainDays').value)||4;
+UP.experience=document.getElementById('sExperience').value;
+UP.mealCount=parseInt(document.getElementById('sMealCount').value)||4;
+UP.calStrat=document.getElementById('sCalStrat').value;
+UP.protein=parseInt(document.getElementById('sProtein').value)||185;
+UP.sleepHrs=parseFloat(document.getElementById('sSleepHrs').value)||8;
+UP.bedtime=document.getElementById('sBedtime').value;
+UP.wakeTime=document.getElementById('sWakeTime').value;
+UP.smm=parseFloat(document.getElementById('sSmm').value)||null;
+UP.visceral=parseInt(document.getElementById('sVisceral').value)||null;
+UP.bmi=parseFloat(document.getElementById('sBmi').value)||null;
+UP.ecw=parseFloat(document.getElementById('sEcw').value)||null;
+// Goal cards
+UP.fitnessGoals=[...document.querySelectorAll('#fitnessGoals .goal-card.selected')].map(c=>c.dataset.goal);
+UP.dietGoals=[...document.querySelectorAll('#dietGoals .goal-card.selected')].map(c=>c.dataset.goal);
+UP.longevityGoals=[...document.querySelectorAll('#longevityGoals .goal-card.selected')].map(c=>c.dataset.goal);
+UP.sleepGoals=[...document.querySelectorAll('#sleepGoals .goal-card.selected')].map(c=>c.dataset.goal);
+}
+
+function toggleGoal(el){el.classList.toggle('selected')}
+
+function renderWizStep(){
+document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
+const step=document.querySelector(`.setup-step[data-step="${wizCur}"]`);
+if(step)step.classList.add('active');
+// Stepper dots
+const st=document.getElementById('stepper');
+st.innerHTML='';
+for(let i=0;i<TOTAL_STEPS;i++){
+const d=document.createElement('div');
+d.className='stepper-dot'+(i<wizCur?' done':'')+(i===wizCur?' active':'');
+st.appendChild(d);
+}
+document.getElementById('stepCount').textContent=`Step ${wizCur+1} of ${TOTAL_STEPS}`;
+document.getElementById('btnPrev').style.display=wizCur>0?'inline-flex':'none';
+const isLast=wizCur===TOTAL_STEPS-1;
+document.getElementById('btnNext').textContent=isLast?'Build My Plan':'Next \u2192';
+}
+
+function wizStep(dir){
+collectProfile();
+wizCur+=dir;
+if(wizCur>=TOTAL_STEPS){
+saveProfile();
+buildPlan();
+closeSetup();
+return;
+}
+if(wizCur<0)wizCur=0;
+renderWizStep();
+}
+
+// ===== PDF UPLOAD & INBODY PARSING =====
+function handleDrop(e){
+e.preventDefault();
+e.currentTarget.classList.remove('drag-over');
+const f=e.dataTransfer.files[0];
+if(f&&f.type==='application/pdf')handlePDF(f);
+}
+
+async function handlePDF(file){
+if(!file)return;
+document.getElementById('uzTitle').textContent='Processing: '+file.name;
+try{
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const buf=await file.arrayBuffer();
+const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+let text='';
+for(let i=1;i<=pdf.numPages;i++){
+const page=await pdf.getPage(i);
+const tc=await page.getTextContent();
+text+=tc.items.map(it=>it.str).join(' ')+'\n';
+}
+const data=parseInBody(text);
+UP.inbodyData=data;
+applyInBodyData(data);
+showInBodyResult(data);
+document.getElementById('uploadZone').classList.add('has-file');
+document.getElementById('uzTitle').textContent='\u2705 '+file.name+' — parsed successfully';
+}catch(err){
+document.getElementById('uzTitle').textContent='\u274c Error parsing PDF. Try manual entry.';
+console.error('PDF parse error:',err);
+}
+}
+
+function parseInBody(text){
+const data={};
+const patterns=[
+{key:'weight',labels:['Weight','Body Weight'],unit:'lbs|kg'},
+{key:'bodyFatPercent',labels:['Percent Body Fat','Body Fat Percentage','PBF'],unit:'%'},
+{key:'smm',labels:['Skeletal Muscle Mass','SMM'],unit:'lbs|kg'},
+{key:'bmi',labels:['BMI','Body Mass Index'],unit:''},
+{key:'bodyFatMass',labels:['Body Fat Mass','BFM'],unit:'lbs|kg'},
+{key:'visceralFat',labels:['Visceral Fat Level','Visceral Fat Area','VFA'],unit:''},
+{key:'ecw',labels:['ECW Ratio','ECW/TBW'],unit:''},
+{key:'leanMass',labels:['Lean Body Mass','Fat Free Mass','FFM'],unit:'lbs|kg'},
+{key:'totalBodyWater',labels:['Total Body Water','TBW'],unit:'lbs|kg|L'},
+{key:'legLeanMass',labels:['Lean Mass.*(?:Leg|Lower)','Right Leg.*Lean'],unit:'lbs|kg'}
+];
+patterns.forEach(p=>{
+for(const lbl of p.labels){
+const re=new RegExp(lbl+'[:\\s]*([\\d.]+)','i');
+const m=text.match(re);
+if(m){data[p.key]=parseFloat(m[1]);break}
+}
+});
+return data;
+}
+
+function applyInBodyData(data){
+if(data.weight){document.getElementById('sCurWeight').value=data.weight;UP.curWeight=data.weight}
+if(data.bodyFatPercent){document.getElementById('sCurBF').value=data.bodyFatPercent;UP.curBF=data.bodyFatPercent}
+if(data.smm){document.getElementById('sSmm').value=data.smm;UP.smm=data.smm}
+if(data.bmi){document.getElementById('sBmi').value=data.bmi;UP.bmi=data.bmi}
+if(data.visceralFat){document.getElementById('sVisceral').value=data.visceralFat;UP.visceral=data.visceralFat}
+if(data.ecw){document.getElementById('sEcw').value=data.ecw;UP.ecw=data.ecw}
+}
+
+function showInBodyResult(data){
+const el=document.getElementById('uploadResult');
+if(Object.keys(data).length===0){el.style.display='none';return}
+el.style.display='block';
+const labels={weight:'Weight',bodyFatPercent:'Body Fat %',smm:'Skeletal Muscle',bmi:'BMI',bodyFatMass:'Fat Mass',visceralFat:'Visceral Fat',ecw:'ECW Ratio',leanMass:'Lean Mass',totalBodyWater:'Total Body Water'};
+let h='<div class="ur-label">Extracted InBody Data</div><div class="ur-grid">';
+Object.entries(data).forEach(([k,v])=>{
+h+=`<div class="ur-item"><span class="ur-key">${labels[k]||k}</span><span class="ur-val">${v}</span></div>`;
+});
+h+='</div>';
+el.innerHTML=h;
+}
+
+// ===== PLAN BUILDER =====
+function buildPlan(){
+// Update constants from profile
+SW_D=UP.curWeight; SBF_D=UP.curBF; GW_D=UP.goalWeight; GBF_D=UP.goalBF;
+
+// Update tagline
+const goalStr=UP.fitnessGoals.map(g=>({recomp:'Recomposition',muscle:'Muscle Building',fatloss:'Fat Loss',strength:'Strength',endurance:'Endurance',general:'General Health'}[g]||g)).join(' + ')||'Custom Program';
+document.getElementById('taglineText').textContent=UP.name+'\'s '+goalStr+' Protocol';
+
+// Build training plan
+buildTrainingPlan();
+// Build meal plan
+buildMealPlan();
+// Build supplement stack
+buildSuppPlan();
+// Update science tab InBody section
+updateScienceBaseline();
+
+// Re-init everything
+initTrainDays();
+initMealDays();
+initSupps();
+renderDash();
+saveProfile();
+}
+
+function buildTrainingPlan(){
+const goals=UP.fitnessGoals;
+const days=UP.trainDays;
+const exp=UP.experience;
+
+// Base templates per primary goal
+if(goals.includes('strength')){
+DAYS.length=0;
+DAYS.push(
+{n:"Monday \u2014 Heavy Upper",c:false,ex:[
+{id:"bench",n:"Barbell bench press",s:exp==='beginner'?"3":"5",r:"3\u20135",m:"Heavy sets. Long rest 3\u20134 min. Full arch, retract scaps."},
+{id:"ohp",n:"Overhead press",s:"4",r:"4\u20136",m:"Strict press. Brace core. No leg drive."},
+{id:"bb-row",n:"Barbell row",s:"4",r:"5\u20137",m:"Heavy. 45\u00b0 torso. Pull to lower chest."},
+{id:"pullup",n:"Weighted pull-ups",s:"4",r:"4\u20136",m:"Add weight via belt. Full dead hang to chin over."},
+{id:"pushdown",n:"Cable pushdowns",s:"3",r:"8\u201310",m:"Accessory volume. Lock elbows at sides."},
+{id:"bb-curl",n:"Barbell curl",s:"3",r:"8\u201310",m:"Strict form. No swing."}
+]},
+{n:"Tuesday \u2014 Heavy Lower",c:false,ex:[
+{id:"squat",n:"Barbell back squat",s:exp==='beginner'?"3":"5",r:"3\u20135",m:"Below parallel. 3\u20134 min rest between heavy sets."},
+{id:"deadlift",n:"Barbell deadlift",s:"4",r:"3\u20135",m:"Conventional. Reset between reps. Max effort."},
+{id:"rdl",n:"Romanian deadlift",s:"3",r:"6\u20138",m:"Hamstring stretch focus. Moderate weight."},
+{id:"leg-press",n:"Leg press",s:"3",r:"8\u201310",m:"Full ROM. Quad emphasis."},
+{id:"seated-calf",n:"Seated calf raises",s:"4",r:"12\u201315",m:"Full stretch and squeeze."}
+]},
+{n:"Wednesday \u2014 Recovery",c:true,ex:[
+{id:"z2-cardio",n:"Zone 2 cardio + mobility",s:"1",r:"30\u201340 min",m:"HR 120\u2013140. Foam roll after."}
+]},
+{n:"Thursday \u2014 Volume Upper",c:false,ex:[
+{id:"incline-db",n:"Incline dumbbell press",s:"4",r:"8\u201310",m:"30\u00b0 incline. Control negative."},
+{id:"cable-row",n:"Seated cable row",s:"4",r:"8\u201310",m:"Squeeze scaps. Controlled return."},
+{id:"db-row",n:"Single-arm dumbbell row",s:"3",r:"10\u201312",m:"Full stretch at bottom."},
+{id:"lat-raise",n:"Lateral raises",s:"3",r:"12\u201315",m:"Light weight, lead with elbows."},
+{id:"skulls",n:"Skull crushers",s:"3",r:"10\u201312",m:"EZ bar. Don't flare elbows."},
+{id:"hammer",n:"Hammer curls",s:"3",r:"10\u201312",m:"Neutral grip. Hit brachialis."},
+{id:"face-pull-m",n:"Face pulls",s:"3",r:"15\u201320",m:"External rotate at top."}
+]},
+{n:"Friday \u2014 Volume Lower",c:false,ex:[
+{id:"bss",n:"Bulgarian split squat",s:"3",r:"10\u201312",m:"Rear foot elevated. Quad dominant."},
+{id:"hip-thrust",n:"Hip thrust",s:"4",r:"10\u201312",m:"Full hip extension. Squeeze 1s."},
+{id:"leg-ext",n:"Leg extensions",s:"3",r:"12\u201315",m:"Squeeze at top."},
+{id:"leg-curl",n:"Lying leg curls",s:"3",r:"10\u201312",m:"Controlled. Hips down."},
+{id:"standing-calf",n:"Standing calf raises",s:"4",r:"12\u201315",m:"Full ROM."}
+]}
+);
+if(days>=6)DAYS.push({n:"Saturday \u2014 HIIT + Core",c:true,ex:[
+{id:"hiit",n:"HIIT intervals",s:"1",r:"20 min",m:"30s on / 60s off."},
+{id:"plank",n:"Plank hold",s:"3",r:"45\u201360s",m:"Neutral spine."},
+{id:"hleg-raise",n:"Hanging leg raises",s:"3",r:"12\u201315",m:"No swinging."}
+]});
+DAYS.push({n:(days>=6?"Sunday":"Saturday")+(" \u2014 Rest"),c:true,ex:[
+{id:"recovery",n:"Active recovery",s:"1",r:"30\u201345 min",m:"Light walking, stretching, foam rolling, yoga, or mobility work."}
+]});
+} else if(goals.includes('fatloss')){
+DAYS.length=0;
+DAYS.push(
+{n:"Monday \u2014 Full Body A",c:false,ex:[
+{id:"squat",n:"Barbell back squat",s:"4",r:"8\u201310",m:"Moderate weight. Keep pace up. 90s rest."},
+{id:"bench",n:"Barbell bench press",s:"4",r:"8\u201310",m:"Controlled. 90s rest between sets."},
+{id:"bb-row",n:"Barbell row",s:"3",r:"10\u201312",m:"Pull to lower chest."},
+{id:"ohp",n:"Dumbbell shoulder press",s:"3",r:"10\u201312",m:"Seated or standing."},
+{id:"plank",n:"Plank hold",s:"3",r:"45\u201360s",m:"Brace everything."}
+]},
+{n:"Tuesday \u2014 HIIT Cardio",c:true,ex:[
+{id:"hiit",n:"HIIT intervals",s:"1",r:"25\u201330 min",m:"30s all-out / 60s recovery. Bike, rower, or sprints."},
+{id:"hleg-raise",n:"Hanging leg raises",s:"3",r:"12\u201315",m:"Core burnout after HIIT."}
+]},
+{n:"Wednesday \u2014 Full Body B",c:false,ex:[
+{id:"deadlift",n:"Barbell deadlift",s:"4",r:"6\u20138",m:"Heavy compound. Full reset between reps."},
+{id:"pullup",n:"Pull-ups / lat pulldown",s:"4",r:"8\u201310",m:"Full ROM."},
+{id:"incline-db",n:"Incline dumbbell press",s:"3",r:"10\u201312",m:"30\u00b0 incline."},
+{id:"rdl",n:"Romanian deadlift",s:"3",r:"10\u201312",m:"Hamstring focus."},
+{id:"face-pull-m",n:"Face pulls",s:"3",r:"15\u201320",m:"Rear delt + external rotation."}
+]},
+{n:"Thursday \u2014 Zone 2 Cardio",c:true,ex:[
+{id:"z2-cardio",n:"Zone 2 steady state",s:"1",r:"40\u201350 min",m:"HR 120\u2013140. Walk, cycle, or elliptical."}
+]},
+{n:"Friday \u2014 Full Body C",c:false,ex:[
+{id:"leg-press",n:"Leg press",s:"4",r:"10\u201312",m:"Full ROM."},
+{id:"cable-row",n:"Seated cable row",s:"3",r:"10\u201312",m:"Retract scaps fully."},
+{id:"db-row",n:"Single-arm dumbbell row",s:"3",r:"10\u201312",m:"Support on bench."},
+{id:"bss",n:"Bulgarian split squat",s:"3",r:"12\u201315",m:"Quad dominant."},
+{id:"pushdown",n:"Cable pushdowns",s:"3",r:"12\u201315",m:"Superset with curls."},
+{id:"bb-curl",n:"Barbell curl",s:"3",r:"12\u201315",m:"Controlled."}
+]},
+{n:"Saturday \u2014 LISS + Core",c:true,ex:[
+{id:"z2-cardio",n:"LISS cardio",s:"1",r:"45\u201360 min",m:"Brisk walk, easy cycling."},
+{id:"ab-wheel",n:"Ab wheel rollout",s:"3",r:"10\u201312",m:"Core finisher."},
+{id:"woodchop",n:"Cable woodchops",s:"3",r:"12\u201315",m:"Anti-rotation."}
+]},
+{n:"Sunday \u2014 Rest",c:true,ex:[
+{id:"recovery",n:"Active recovery",s:"1",r:"30 min",m:"Light walking, stretching, foam rolling."}
+]}
+);
+} else if(goals.includes('endurance')){
+DAYS.length=0;
+DAYS.push(
+{n:"Monday \u2014 Upper Strength",c:false,ex:[
+{id:"bench",n:"Barbell bench press",s:"3",r:"8\u201310",m:"Moderate load. Keep rest under 90s."},
+{id:"pullup",n:"Pull-ups",s:"3",r:"8\u201310",m:"Full ROM."},
+{id:"ohp",n:"Overhead press",s:"3",r:"8\u201310",m:"Strict form."},
+{id:"bb-row",n:"Barbell row",s:"3",r:"10\u201312",m:"Controlled reps."},
+{id:"face-pull-m",n:"Face pulls",s:"3",r:"15\u201320",m:"Rear delt focus."}
+]},
+{n:"Tuesday \u2014 Tempo Run / Bike",c:true,ex:[
+{id:"z2-cardio",n:"Tempo cardio",s:"1",r:"35\u201345 min",m:"Moderate intensity. Conversational pace to slightly harder."}
+]},
+{n:"Wednesday \u2014 Lower Strength",c:false,ex:[
+{id:"squat",n:"Barbell back squat",s:"3",r:"8\u201310",m:"Moderate weight."},
+{id:"rdl",n:"Romanian deadlift",s:"3",r:"10\u201312",m:"Hamstring focus."},
+{id:"bss",n:"Bulgarian split squat",s:"3",r:"12\u201315",m:"Single leg stability."},
+{id:"leg-curl",n:"Leg curls",s:"3",r:"12\u201315",m:"Controlled."},
+{id:"standing-calf",n:"Standing calf raises",s:"3",r:"15\u201320",m:"Full ROM."}
+]},
+{n:"Thursday \u2014 HIIT Intervals",c:true,ex:[
+{id:"hiit",n:"HIIT intervals",s:"1",r:"25\u201330 min",m:"30s all-out / 60s recovery. Build VO2max."}
+]},
+{n:"Friday \u2014 Full Body Circuit",c:false,ex:[
+{id:"deadlift",n:"Barbell deadlift",s:"3",r:"6\u20138",m:"Moderate-heavy."},
+{id:"incline-db",n:"Incline dumbbell press",s:"3",r:"10\u201312",m:"Keep moving."},
+{id:"cable-row",n:"Cable row",s:"3",r:"10\u201312",m:"Moderate weight."},
+{id:"leg-press",n:"Leg press",s:"3",r:"12\u201315",m:"Circuit style."},
+{id:"plank",n:"Plank hold",s:"3",r:"60s",m:"Core stability."}
+]},
+{n:"Saturday \u2014 Long Cardio",c:true,ex:[
+{id:"z2-cardio",n:"Long Zone 2",s:"1",r:"50\u201370 min",m:"Easy pace. Build aerobic base."}
+]},
+{n:"Sunday \u2014 Rest",c:true,ex:[
+{id:"recovery",n:"Active recovery",s:"1",r:"30 min",m:"Light walking, yoga, stretching."}
+]}
+);
+} else {
+// Default: Body recomp / muscle / general (upper-lower split)
+DAYS.length=0;
+DAYS.push(
+{n:"Monday \u2014 Upper A (Push)",c:false,ex:[
+{id:"bench",n:"Barbell bench press",s:"4",r:"6\u20138",m:"Arch back, retract scaps. Full ROM. Pause 1s at chest."},
+{id:"incline-db",n:"Incline dumbbell press",s:"3",r:"8\u201310",m:"30\u00b0 incline. Control the negative."},
+{id:"ohp",n:"Overhead press",s:"4",r:"6\u20138",m:"Strict press \u2014 no leg drive. Brace core tight."},
+{id:"lat-raise",n:"Lateral raises",s:"3",r:"12\u201315",m:"Light weight, controlled. Lead with elbows."},
+{id:"pushdown",n:"Cable pushdowns",s:"3",r:"10\u201312",m:"Lock elbows at sides. Full extension."},
+{id:"skulls",n:"Skull crushers",s:"3",r:"10\u201312",m:"EZ bar. Lower to forehead, don't flare elbows."},
+{id:"face-pull-m",n:"Face pulls",s:"3",r:"15\u201320",m:"External rotate at top. Rear delt focus."}
+]},
+{n:"Tuesday \u2014 Lower A (Quad Focus)",c:false,ex:[
+{id:"squat",n:"Barbell back squat",s:"4",r:"6\u20138",m:"High bar. Break at hips and knees simultaneously. Below parallel."},
+{id:"leg-press",n:"Leg press",s:"3",r:"10\u201312",m:"Feet shoulder-width, mid-platform. Full ROM."},
+{id:"rdl",n:"Romanian deadlift",s:"3",r:"8\u201310",m:"Hinge at hips. Slight knee bend. Feel hamstring stretch."},
+{id:"bss",n:"Bulgarian split squat",s:"3",r:"10\u201312",m:"Rear foot elevated. Upright torso. Quad dominant."},
+{id:"leg-ext",n:"Leg extensions",s:"3",r:"12\u201315",m:"Squeeze at top for 1s. Controlled negative."},
+{id:"seated-calf",n:"Seated calf raises",s:"4",r:"15\u201320",m:"Full stretch at bottom. Pause at top. Slow eccentric."}
+]},
+{n:"Wednesday \u2014 Zone 2 Cardio",c:true,ex:[
+{id:"z2-cardio",n:"Zone 2 cardio",s:"1",r:"30\u201345 min",m:"Heart rate 120\u2013140 BPM. Conversation pace."}
+]},
+{n:"Thursday \u2014 Upper B (Pull)",c:false,ex:[
+{id:"pullup",n:"Pull-ups / Lat pulldown",s:"4",r:"6\u20138",m:"Full dead hang to chin over bar. Add weight when hitting 8 reps."},
+{id:"bb-row",n:"Barbell row",s:"4",r:"6\u20138",m:"45\u00b0 torso angle. Pull to lower chest. Squeeze lats."},
+{id:"cable-row",n:"Seated cable row",s:"3",r:"10\u201312",m:"Close grip. Retract scaps fully."},
+{id:"db-row",n:"Single-arm dumbbell row",s:"3",r:"10\u201312",m:"Support on bench. Full stretch at bottom."},
+{id:"bb-curl",n:"Barbell curl",s:"3",r:"10\u201312",m:"No swinging. Control negative for 2s."},
+{id:"hammer",n:"Hammer curls",s:"3",r:"10\u201312",m:"Neutral grip. Hit brachialis and forearms."},
+{id:"face-pull-t",n:"Face pulls",s:"3",r:"15\u201320",m:"External rotate at top. Light weight, high reps."}
+]},
+{n:"Friday \u2014 Lower B (Posterior)",c:false,ex:[
+{id:"deadlift",n:"Barbell deadlift",s:"4",r:"4\u20136",m:"Conventional stance. Chest up, lats engaged. Reset between reps."},
+{id:"hip-thrust",n:"Hip thrust",s:"3",r:"10\u201312",m:"Bench at mid-scapula. Full hip extension. Squeeze glutes 1s."},
+{id:"lunges",n:"Walking lunges",s:"3",r:"12\u201315",m:"Long stride. Upright torso. Glute and hamstring focus."},
+{id:"leg-curl",n:"Lying leg curls",s:"3",r:"10\u201312",m:"Controlled. Don't let hips rise off pad."},
+{id:"hack-squat",n:"Hack squat",s:"3",r:"10\u201312",m:"Feet low on platform. Quad emphasis. Full depth."},
+{id:"standing-calf",n:"Standing calf raises",s:"4",r:"12\u201315",m:"Full ROM. Pause at top and bottom."}
+]},
+{n:"Saturday \u2014 HIIT + Core",c:true,ex:[
+{id:"hiit",n:"HIIT intervals",s:"1",r:"20\u201325 min",m:"30s all-out / 60s recovery. Bike, rower, or battle ropes."},
+{id:"plank",n:"Plank hold",s:"3",r:"45\u201360s",m:"Neutral spine. Squeeze everything. No sagging."},
+{id:"hleg-raise",n:"Hanging leg raises",s:"3",r:"12\u201315",m:"Controlled. No swinging. Curl pelvis up."},
+{id:"woodchop",n:"Cable woodchops",s:"3",r:"12\u201315",m:"Rotate through thoracic spine. Stable lower body."},
+{id:"ab-wheel",n:"Ab wheel rollout",s:"3",r:"10\u201312",m:"Go as far as you can control. Engage core throughout."},
+{id:"pallof",n:"Pallof press",s:"3",r:"12\u201315",m:"Anti-rotation. Press and hold 2s. Brace hard."}
+]},
+{n:"Sunday \u2014 Active Recovery",c:true,ex:[
+{id:"recovery",n:"Active recovery",s:"1",r:"30\u201345 min",m:"Light walking, stretching, foam rolling, yoga, or mobility work. Keep it easy."}
+]}
+);
+}
+}
+
+function buildMealPlan(){
+const w=UP.curWeight;
+const pTarget=UP.protein;
+const strat=UP.calStrat;
+
+// Calculate TDEE estimate (Mifflin-St Jeor rough)
+let bmr;
+if(UP.sex==='male') bmr=10*w/2.205+6.25*170-5*UP.age+5; // rough metric conversion
+else bmr=10*w/2.205+6.25*160-5*UP.age-161;
+const actMult=UP.trainDays>=5?1.6:UP.trainDays>=4?1.55:1.45;
+const tdee=Math.round(bmr*actMult);
+
+let trainCal,restCal;
+if(strat==='deficit'){trainCal=tdee-300;restCal=tdee-500}
+else if(strat==='surplus'){trainCal=tdee+300;restCal=tdee+100}
+else if(strat==='maintenance'){trainCal=tdee;restCal=tdee}
+else{trainCal=tdee;restCal=tdee-400} // recomp: cycle
+
+const perMeal=Math.round(pTarget/UP.mealCount);
+
+// Rebuild MEALS array with adjusted targets
+const dayNames=["Day 1 \u2014 Mon","Day 2 \u2014 Tue","Day 3 \u2014 Wed","Day 4 \u2014 Thu","Day 5 \u2014 Fri","Day 6 \u2014 Sat","Day 7 \u2014 Sun"];
+const trainDayNames=["Upper A training day","Lower A training day","Zone 2 cardio day","Upper B training day","Lower B training day","HIIT + Core day","Active recovery day"];
+
+// Simple meal templates (scaled to calories)
+const mealDB=[
+{n:"Greek yogurt power bowl",f:"Greek yogurt 250g \u00b7 mixed berries 100g \u00b7 granola 40g \u00b7 chia seeds 15g \u00b7 honey 10g",pR:.08,cR:.11,fR:.03},
+{n:"Grilled chicken & quinoa plate",f:"Chicken breast 200g \u00b7 quinoa 120g cooked \u00b7 roasted broccoli 150g \u00b7 olive oil 10ml",pR:.11,cR:.08,fR:.03},
+{n:"Salmon teriyaki bowl",f:"Salmon fillet 180g \u00b7 brown rice 140g cooked \u00b7 edamame 80g \u00b7 spinach 60g",pR:.10,cR:.09,fR:.04},
+{n:"Casein protein shake",f:"Casein protein 40g \u00b7 almond butter 15g \u00b7 almond milk 250ml \u00b7 banana \u00bd",pR:.09,cR:.05,fR:.03},
+{n:"Cottage cheese pancakes",f:"Cottage cheese 200g \u00b7 oat flour 50g \u00b7 banana 1 \u00b7 blueberries 80g",pR:.07,cR:.12,fR:.02},
+{n:"Turkey & sweet potato meal prep",f:"Ground turkey 200g \u00b7 sweet potato 200g \u00b7 green beans 120g \u00b7 olive oil 8ml",pR:.10,cR:.10,fR:.03},
+{n:"Chicken thigh stir-fry",f:"Chicken thigh 180g \u00b7 jasmine rice 130g \u00b7 bell peppers 100g \u00b7 snap peas 80g",pR:.09,cR:.10,fR:.03},
+{n:"Lean beef burrito bowl",f:"Lean ground beef 180g \u00b7 black beans 80g \u00b7 brown rice 120g \u00b7 salsa 60g \u00b7 avocado 40g",pR:.10,cR:.09,fR:.04},
+{n:"Tuna & rice bowl",f:"Canned tuna 180g \u00b7 jasmine rice 140g \u00b7 avocado 50g \u00b7 cucumber 60g",pR:.09,cR:.08,fR:.03},
+{n:"Pea protein smoothie bowl",f:"Pea protein 30g \u00b7 frozen mango 100g \u00b7 spinach 40g \u00b7 oat milk 200ml \u00b7 granola 30g",pR:.07,cR:.11,fR:.02},
+{n:"Shrimp & chickpea bowl",f:"Shrimp 200g \u00b7 chickpeas 120g \u00b7 cucumber 80g \u00b7 cherry tomatoes 80g \u00b7 olive oil 10ml",pR:.09,cR:.06,fR:.03},
+{n:"Casein & Greek yogurt mix",f:"Casein protein 35g \u00b7 Greek yogurt 150g \u00b7 almonds 20g \u00b7 dark chocolate chips 10g",pR:.09,cR:.04,fR:.03}
+];
+const timings4=["Breakfast 7am","Lunch 12pm","Dinner 6pm","Pre-bed 9pm"];
+const timings3=["Breakfast 7am","Lunch 12pm","Dinner 6pm"];
+const timings5=["Breakfast 7am","Snack 10am","Lunch 12pm","Dinner 6pm","Pre-bed 9pm"];
+const timings=UP.mealCount===3?timings3:UP.mealCount===5?timings5:timings4;
+
+MEALS.length=0;
+for(let d=0;d<7;d++){
+const isTraining=d<UP.trainDays||(d===5); // Sat usually training
+const cal=isTraining?trainCal:restCal;
+const type=isTraining?'training':'cardio';
+const slots=[];
+for(let m=0;m<UP.mealCount;m++){
+const meal=mealDB[(d*UP.mealCount+m)%mealDB.length];
+const calPer=Math.round(cal/UP.mealCount);
+const p=Math.round(pTarget/UP.mealCount);
+const fGrams=Math.round(calPer*0.25/9);
+const cGrams=Math.round((calPer-p*4-fGrams*9)/4);
+slots.push({t:timings[m],n:meal.n,f:meal.f,p:p,c:Math.max(cGrams,10),fa:fGrams,k:calPer});
+}
+MEALS.push({day:dayNames[d],type:type,target:cal,title:trainDayNames[d],slots:slots});
+}
+}
+
+function buildSuppPlan(){
+SUPPS.length=0;
+// Base supplements everyone gets
+SUPPS.push(
+{name:"Creatine monohydrate",dose:"5g/day",timing:"Any time \u2014 mix with water or shake",icon:"\ud83d\udcaa",color:"var(--acid)"},
+{name:"Pea protein isolate",dose:"1\u20132 scoops",timing:"As needed to hit "+UP.protein+"g daily protein",icon:"\ud83c\udf31",color:"var(--acid)"},
+{name:"Vitamin D3 + K2",dose:"3,000\u20135,000 IU D3",timing:"Daily with a meal containing fat",icon:"\u2600\ufe0f",color:"var(--gold)"},
+{name:"Omega-3 fish oil",dose:"2\u20133g EPA/DHA",timing:"Daily with meals",icon:"\ud83d\udc1f",color:"var(--ice)"}
+);
+
+// Sleep-based supplements
+if(UP.sleepGoals.includes('sleep-optimize')||UP.sleepGoals.includes('sleep-fall')||UP.sleepGoals.includes('sleep-wake')){
+SUPPS.push({name:"Magnesium glycinate",dose:"400\u2013600mg",timing:"60 min before bed \u2014 calms nervous system",icon:"\ud83e\udde0",color:"var(--violet)"});
+}
+if(UP.sleepGoals.includes('sleep-fall')){
+SUPPS.push({name:"L-Theanine",dose:"200mg",timing:"30 min before bed \u2014 promotes relaxation without drowsiness",icon:"\ud83c\udf75",color:"var(--violet)"});
+SUPPS.push({name:"Apigenin",dose:"50mg",timing:"Before bed \u2014 mild sedative via GABA modulation",icon:"\ud83c\udf3c",color:"var(--violet)"});
+}
+if(UP.sleepGoals.includes('sleep-wake')){
+SUPPS.push({name:"Glycine",dose:"3g",timing:"Before bed \u2014 improves sleep quality and reduces night waking",icon:"\ud83d\udca4",color:"var(--ice)"});
+}
+if(UP.sleepGoals.includes('sleep-energy')){
+SUPPS.push({name:"Ashwagandha KSM-66",dose:"600mg",timing:"Morning \u2014 reduces cortisol, improves energy and sleep quality",icon:"\ud83c\udf3f",color:"var(--acid)"});
+}
+
+// Longevity-based supplements
+if(UP.longevityGoals.includes('joints')){
+SUPPS.push({name:"Collagen peptides",dose:"10\u201315g",timing:"Daily \u2014 supports joints, tendons, and skin",icon:"\ud83e\uddb4",color:"var(--ice)"});
+SUPPS.push({name:"Glucosamine + Chondroitin",dose:"1500mg / 1200mg",timing:"With meals \u2014 joint cartilage support",icon:"\ud83e\uddbf",color:"var(--ice)"});
+SUPPS.push({name:"Curcumin (Turmeric)",dose:"500mg + piperine",timing:"With meals \u2014 powerful anti-inflammatory",icon:"\ud83d\udfe1",color:"var(--gold)"});
+}
+if(UP.longevityGoals.includes('cardio-health')){
+SUPPS.push({name:"CoQ10 (Ubiquinol)",dose:"200mg",timing:"With fatty meal \u2014 heart & mitochondrial health",icon:"\u2764\ufe0f",color:"var(--ember)"});
+SUPPS.push({name:"Citrus bergamot",dose:"500mg",timing:"Daily \u2014 supports healthy cholesterol levels",icon:"\ud83c\udf4a",color:"var(--gold)"});
+}
+if(UP.longevityGoals.includes('hormones')){
+SUPPS.push({name:"Zinc",dose:"15\u201325mg",timing:"With dinner \u2014 supports testosterone & immunity",icon:"\u26a1",color:"var(--gold)"});
+SUPPS.push({name:"Boron",dose:"6\u201310mg",timing:"Daily \u2014 supports free testosterone",icon:"\ud83d\udd25",color:"var(--ember)"});
+SUPPS.push({name:"Tongkat Ali",dose:"400mg",timing:"Morning \u2014 supports testosterone levels naturally",icon:"\ud83c\udf3f",color:"var(--acid)"});
+}
+if(UP.longevityGoals.includes('cognitive')){
+SUPPS.push({name:"Lion\u2019s Mane",dose:"1000mg",timing:"Morning \u2014 supports NGF and brain health",icon:"\ud83e\udde0",color:"var(--violet)"});
+SUPPS.push({name:"Alpha-GPC",dose:"300mg",timing:"Morning \u2014 acetylcholine precursor for focus",icon:"\ud83d\udca1",color:"var(--ice)"});
+}
+if(UP.longevityGoals.includes('gut')){
+SUPPS.push({name:"Probiotic (multi-strain)",dose:"50B CFU",timing:"Morning on empty stomach",icon:"\ud83e\uddec",color:"var(--acid)"});
+SUPPS.push({name:"L-Glutamine",dose:"5g",timing:"Post-workout \u2014 gut lining repair",icon:"\ud83e\uddc2",color:"var(--ice)"});
+}
+if(UP.longevityGoals.includes('anti-aging')){
+SUPPS.push({name:"NMN (Nicotinamide Mononucleotide)",dose:"500mg",timing:"Morning \u2014 NAD+ precursor for cellular energy",icon:"\u23f3",color:"var(--violet)"});
+SUPPS.push({name:"Resveratrol",dose:"500mg",timing:"Morning with fat \u2014 sirtuin activator",icon:"\ud83c\udf47",color:"var(--violet)"});
+}
+
+// Fitness-based supplements
+if(UP.fitnessGoals.includes('strength')||UP.fitnessGoals.includes('muscle')){
+SUPPS.push({name:"Beta-alanine",dose:"3.2g/day",timing:"Split doses \u2014 reduces muscle fatigue in high-rep sets",icon:"\ud83d\udd25",color:"var(--ember)"});
+SUPPS.push({name:"Caffeine",dose:"200mg",timing:"30 min pre-lift, cut off by 2pm",icon:"\u2615",color:"var(--ember)"});
+}
+if(UP.fitnessGoals.includes('endurance')){
+SUPPS.push({name:"Beta-alanine",dose:"3.2g/day",timing:"Split doses \u2014 buffers lactic acid for endurance",icon:"\ud83d\udd25",color:"var(--ember)"});
+SUPPS.push({name:"Beetroot powder",dose:"6\u20138g",timing:"60 min pre-cardio \u2014 nitric oxide boost",icon:"\ud83e\uddc3",color:"var(--ember)"});
+}
+
+// Pre-bed protein (universal)
+SUPPS.push({name:"Casein protein",dose:"35\u201340g",timing:"Before bed \u2014 slow-release overnight amino acids",icon:"\ud83e\udd5b",color:"var(--ice)"});
+}
+
+function updateScienceBaseline(){
+const el=document.querySelector('#sci .card');
+if(!el)return;
+// Find and update the InBody scan block
+const sciBlocks=el.querySelectorAll('.sci-block');
+sciBlocks.forEach(block=>{
+const h4=block.querySelector('h4');
+if(h4&&h4.textContent.includes('InBody Scan Baseline')){
+let html='<h4>InBody Scan Baseline</h4>';
+html+=`<p style="color:var(--text)">Starting Point</p>`;
+html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">';
+html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">Weight:</span> <span style="font-family:'JetBrains Mono',monospace">${UP.curWeight} lbs</span></div>`;
+html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">Body Fat:</span> <span style="font-family:'JetBrains Mono',monospace;color:var(--ember)">${UP.curBF}%</span></div>`;
+if(UP.smm)html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">Skeletal Muscle:</span> <span style="font-family:'JetBrains Mono',monospace;color:var(--ice)">${UP.smm} lbs</span></div>`;
+if(UP.bmi)html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">BMI:</span> <span style="font-family:'JetBrains Mono',monospace">${UP.bmi}</span></div>`;
+if(UP.visceral)html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">Visceral Fat:</span> <span style="font-family:'JetBrains Mono',monospace">Level ${UP.visceral}</span></div>`;
+if(UP.ecw)html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">ECW Ratio:</span> <span style="font-family:'JetBrains Mono',monospace">${UP.ecw}</span></div>`;
+html+=`<div style="font-size:.82rem"><span style="color:var(--text-3)">Height:</span> <span style="font-family:'JetBrains Mono',monospace">${UP.height}</span></div>`;
+html+='</div>';
+const fatTarget=(UP.curWeight*(UP.curBF/100))-(UP.goalWeight*(UP.goalBF/100));
+html+=`<p style="margin-top:10px"><span style="color:var(--text-3)">Goal:</span> Reach <span style="color:var(--acid);font-family:'JetBrains Mono',monospace">${UP.goalWeight} lbs</span> at <span style="color:var(--ember);font-family:'JetBrains Mono',monospace">${UP.goalBF}% BF</span> \u2014 lose ~${fatTarget.toFixed(1)} lbs fat mass.</p>`;
+block.innerHTML=html;
+}
+});
+}
+
+// ===== DYNAMIC CONSTANTS (overridden by profile) =====
+let SW_D=174.7,SBF_D=16.8,GBF_D=10,GW_D=175;
+
 // ===== CONSTANTS =====
 const SW=174.7,SBF=16.8,GBF=10,GW=175;
 const START_DATE="2025-12-17";
@@ -404,7 +1297,7 @@ let WE=[],LL={},MC={};
 let dC=null,lC=null,wC=null,mC=null;
 
 // ===== TRAINING DATA =====
-const DAYS=[
+let DAYS=[
 {n:"Monday — Upper A (Push)",c:false,ex:[
 {id:"bench",n:"Barbell bench press",s:"4",r:"6–8",m:"Arch back, retract scaps. Full ROM. Pause 1s at chest."},
 {id:"incline-db",n:"Incline dumbbell press",s:"3",r:"8–10",m:"30° incline. Control the negative."},
@@ -456,7 +1349,7 @@ const DAYS=[
 ];
 
 // ===== MEAL PLAN DATA =====
-const MEALS=[
+let MEALS=[
 {day:"Day 1 — Mon",type:"training",target:2500,title:"Upper A training day",slots:[
 {t:"Breakfast 7am",n:"Greek yogurt power bowl",f:"Greek yogurt 250g · mixed berries 100g · granola 40g · chia seeds 15g · honey 10g",p:38,c:52,fa:14,k:486},
 {t:"Lunch 12pm",n:"Grilled chicken & quinoa plate",f:"Chicken breast 200g · quinoa 120g cooked · roasted broccoli 150g · olive oil 10ml · lemon",p:54,c:38,fa:16,k:512},
@@ -502,7 +1395,7 @@ const MEALS=[
 ];
 
 // ===== SUPPLEMENT DATA =====
-const SUPPS=[
+let SUPPS=[
 {name:"Creatine monohydrate",dose:"5g/day",timing:"Any time — mix with water or shake",icon:"💪",color:"var(--acid)"},
 {name:"Pea protein isolate",dose:"1–2 scoops",timing:"As needed to hit 185g daily protein",icon:"🌱",color:"var(--acid)"},
 {name:"Casein protein",dose:"35–40g",timing:"Before bed — slow-release overnight",icon:"🥛",color:"var(--ice)"},
@@ -769,8 +1662,8 @@ const maxW=Math.max(...weights)+3;
 
 const datasets=[
 {label:'Weight (lbs)',data:weights,borderColor:'#b8ff57',backgroundColor:'rgba(184,255,87,0.08)',tension:.3,pointRadius:4,pointBackgroundColor:'#b8ff57',borderWidth:2,yAxisID:'y',fill:true},
-{label:'Start',data:Array(labels.length).fill(SW),borderColor:'rgba(255,255,255,0.15)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'},
-{label:'Goal',data:Array(labels.length).fill(GW),borderColor:'rgba(87,200,255,0.3)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'}
+{label:'Start',data:Array(labels.length).fill(SW_D),borderColor:'rgba(255,255,255,0.15)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'},
+{label:'Goal',data:Array(labels.length).fill(GW_D),borderColor:'rgba(87,200,255,0.3)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'}
 ];
 const scales={x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{position:'left',min:minW,max:maxW,grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>v+' lbs'}}};
 if(hasBF){
@@ -787,18 +1680,19 @@ options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',int
 // ===== DASHBOARD =====
 function renderDash(){
 const latest=WE.length?WE[WE.length-1]:null;
-const latestW=latest?latest.weight:SW;
-const latestBF=latest&&latest.bf?latest.bf:SBF;
+const latestW=latest?latest.weight:SW_D;
+const latestBF=latest&&latest.bf?latest.bf:SBF_D;
 
 // Stat cards
 document.getElementById('dWeight').textContent=latest?latestW.toFixed(1):'--';
-document.getElementById('dWeightSub').textContent=latest?`Started: ${SW} lbs`:'Log your first entry';
+document.getElementById('dWeightSub').textContent=latest?`Started: ${SW_D} lbs`:'Log your first entry';
 document.getElementById('dBF').textContent=latest&&latest.bf?latestBF.toFixed(1)+'%':'--';
+document.getElementById('dBFSub').textContent='Goal: '+GBF_D+'%';
 
 const fatMass=latestW*(latestBF/100);
-const startFat=SW*(SBF/100);
+const startFat=SW_D*(SBF_D/100);
 const fatLost=startFat-fatMass;
-const targetFatLoss=startFat-(GW*GBF/100);
+const targetFatLoss=startFat-(GW_D*GBF_D/100);
 document.getElementById('dFat').textContent=fatLost>0?fatLost.toFixed(1)+' lbs':'--';
 document.getElementById('dFatSub').textContent=`of ${targetFatLoss.toFixed(1)} lbs target`;
 
@@ -822,7 +1716,7 @@ document.getElementById('dPR').textContent=prCount;
 let ws=50,ss=30,cs=0,ko=0;
 if(latest){
 ws=Math.max(0,Math.min(100,50+Math.round((fatLost/targetFatLoss)*50)));
-if(latest.bf)cs=Math.max(0,Math.min(100,Math.round(((SBF-latestBF)/(SBF-GBF))*100)));
+if(latest.bf)cs=Math.max(0,Math.min(100,Math.round(((SBF_D-latestBF)/(SBF_D-GBF_D))*100)));
 const daysSince=Math.max(7,daysBetween(START_DATE,todayStr()));
 ko=Math.min(100,Math.round((WE.length/daysSince)*100));
 }
@@ -872,7 +1766,7 @@ function renderDashWeightChart(){
 const ctx=document.getElementById('weightChart');
 if(mC){mC.destroy()}
 if(WE.length===0){
-mC=new Chart(ctx,{type:'line',data:{labels:['Start'],datasets:[{data:[SW],borderColor:'rgba(255,255,255,0.1)',pointRadius:4,pointBackgroundColor:'#b8ff57',borderWidth:1}]},
+mC=new Chart(ctx,{type:'line',data:{labels:['Start'],datasets:[{data:[SW_D],borderColor:'rgba(255,255,255,0.1)',pointRadius:4,pointBackgroundColor:'#b8ff57',borderWidth:1}]},
 options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{grid:{color:'rgba(255,255,255,0.03)'}}}}});
 return;
 }
@@ -880,12 +1774,12 @@ const labels=WE.map(e=>e.date);
 const weights=WE.map(e=>e.weight);
 const bfs=WE.map(e=>e.bf);
 const hasBF=bfs.some(b=>b!==null);
-const minW=Math.min(...weights,GW)-3;
-const maxW=Math.max(...weights,SW)+3;
+const minW=Math.min(...weights,GW_D)-3;
+const maxW=Math.max(...weights,SW_D)+3;
 const datasets=[
 {label:'Weight',data:weights,borderColor:'#b8ff57',backgroundColor:'rgba(184,255,87,0.08)',tension:.3,pointRadius:3,pointBackgroundColor:'#b8ff57',borderWidth:2,yAxisID:'y',fill:true},
-{label:'Start',data:Array(labels.length).fill(SW),borderColor:'rgba(255,255,255,0.15)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'},
-{label:'Goal',data:Array(labels.length).fill(GW),borderColor:'rgba(87,200,255,0.3)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'}
+{label:'Start',data:Array(labels.length).fill(SW_D),borderColor:'rgba(255,255,255,0.15)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'},
+{label:'Goal',data:Array(labels.length).fill(GW_D),borderColor:'rgba(87,200,255,0.3)',borderDash:[5,5],pointRadius:0,borderWidth:1,yAxisID:'y'}
 ];
 const scales={x:{grid:{color:'rgba(255,255,255,0.03)'}},y:{position:'left',min:minW,max:maxW,grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>v+' lbs'}}};
 if(hasBF){
@@ -926,10 +1820,28 @@ Chart.defaults.color='#4a5a6a';
 Chart.defaults.borderColor='rgba(255,255,255,0.05)';
 
 document.getElementById('wlDate').value=todayStr();
+
+// Check for saved profile or show setup wizard
+const hasProfile=loadProfile();
+if(hasProfile){
+// Apply saved profile
+SW_D=UP.curWeight;SBF_D=UP.curBF;GW_D=UP.goalWeight;GBF_D=UP.goalBF;
+const goalStr=UP.fitnessGoals.map(g=>({recomp:'Recomposition',muscle:'Muscle Building',fatloss:'Fat Loss',strength:'Strength',endurance:'Endurance',general:'General Health'}[g]||g)).join(' + ')||'Custom Program';
+document.getElementById('taglineText').textContent=UP.name+"'s "+goalStr+' Protocol';
+buildTrainingPlan();
+buildMealPlan();
+buildSuppPlan();
+}
+
 initTrainDays();
 initMealDays();
 initSupps();
 renderDash();
+
+if(!hasProfile){
+// First visit — show setup wizard
+openSetup();
+}
 </script>
 </body>
 </html>
