@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Deepvein — Top-Down Survival</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Deepvein" />
+<meta name="theme-color" content="#101018" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<canvas id="game" width="800" height="1200"></canvas>
+
+<div id="hud">
+  <div id="stats">
+    <div class="bar hp"><span id="hpFill"></span><label id="hpLabel">HP</label></div>
+    <div class="bar hu"><span id="huFill"></span><label id="huLabel">Hunger</label></div>
+  </div>
+  <div id="hotbar"></div>
+  <div id="topright">
+    <button id="btnBag" class="iconbtn" aria-label="Inventory">&#9646;</button>
+    <button id="btnCraft" class="iconbtn" aria-label="Craft">&#10022;</button>
+    <button id="btnMenu" class="iconbtn" aria-label="Menu">&#9776;</button>
+  </div>
+  <div id="toast"></div>
+</div>
+
+<div id="joy" class="touch">
+  <div id="joyBase"><div id="joyStick"></div></div>
+</div>
+<div id="actions" class="touch">
+  <button id="btnA" class="actbtn" aria-label="Attack / Mine">&#9876;</button>
+  <button id="btnB" class="actbtn small" aria-label="Use Item">&#10033;</button>
+</div>
+
+<div id="modal" class="hidden">
+  <div id="modalCard">
+    <div id="modalHeader">
+      <h2 id="modalTitle">Inventory</h2>
+      <button id="modalClose" class="iconbtn">&#10005;</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div id="title" class="screen">
+  <div class="titlecard">
+    <h1>DEEPVEIN</h1>
+    <p class="tag">A top-down mining survival game</p>
+    <button id="btnPlay" class="bigbtn">Enter the Caves</button>
+    <button id="btnWipe" class="linkbtn">Reset save</button>
+    <p class="hint">Tap the joystick to move. Tap the attack button to mine walls and fight slimes. Eat to survive.</p>
+    <p class="tiny">Add to Home Screen for fullscreen play.</p>
+  </div>
+</div>
+
+<script src="game.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
