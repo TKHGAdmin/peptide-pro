@@ -2,70 +2,106 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Greenheart — A Hero's Tale</title>
+<title>Arcade — Greenheart &amp; Cup Manager</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Greenheart" />
-<meta name="theme-color" content="#1a4a1a" />
+<meta name="apple-mobile-web-app-title" content="Arcade" />
+<meta name="theme-color" content="#0d1a14" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="icon" type="image/png" href="icon-192.png" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<canvas id="game" width="800" height="1200"></canvas>
 
-<div id="hud">
-  <div id="stats">
-    <div id="hearts"></div>
-    <div id="rupees">&#128142; 0</div>
-    <div id="biomeRow">
-      <span id="biomeLabel">Meadow</span>
-      <span id="timeLabel">&#9728;&#65039;</span>
+<!-- Hub / game selector -->
+<div id="gameHub" class="hub">
+  <div class="hubInner">
+    <h1 class="hubTitle">ARCADE</h1>
+    <p class="hubSubtitle">A pocket-sized game collection</p>
+    <div class="hubGames">
+      <button class="gameCard" data-game="greenheart">
+        <div class="gcIcon">🛡️</div>
+        <div class="gcText">
+          <div class="gcName">Greenheart</div>
+          <div class="gcDesc">A Hero's Tale</div>
+          <div class="gcSmall">Top-down action / farming / building</div>
+        </div>
+      </button>
+      <button class="gameCard" data-game="soccer">
+        <div class="gcIcon">⚽</div>
+        <div class="gcText">
+          <div class="gcName">Cup Manager</div>
+          <div class="gcDesc">World Tournament</div>
+          <div class="gcSmall">Tactical football with D&amp;D dice rolls</div>
+        </div>
+      </button>
     </div>
-    <div id="stationBadge"></div>
+    <p class="hubFoot">Add to Home Screen in Safari for fullscreen play.</p>
   </div>
-  <div id="hotbar"></div>
-  <div id="topright">
-    <button id="btnBag" class="iconbtn" aria-label="Inventory">&#9646;</button>
-    <button id="btnCraft" class="iconbtn" aria-label="Craft">&#10022;</button>
-    <button id="btnMenu" class="iconbtn" aria-label="Menu">&#9776;</button>
-  </div>
-  <div id="toast"></div>
 </div>
 
-<div id="joy" class="touch">
-  <div id="joyBase"><div id="joyStick"></div></div>
-</div>
-<div id="actions" class="touch">
-  <button id="btnA" class="actbtn" aria-label="Attack">&#9876;</button>
-  <button id="btnB" class="actbtn small" aria-label="Use / Place">&#10033;</button>
-</div>
+<!-- Greenheart game container -->
+<div id="greenheartGame" class="gameContainer hidden">
+  <canvas id="game" width="800" height="1200"></canvas>
 
-<div id="modal" class="hidden">
-  <div id="modalCard">
-    <div id="modalHeader">
-      <h2 id="modalTitle">Inventory</h2>
-      <button id="modalClose" class="iconbtn">&#10005;</button>
+  <div id="hud">
+    <div id="stats">
+      <div id="hearts"></div>
+      <div id="rupees">&#128142; 0</div>
+      <div id="biomeRow">
+        <span id="biomeLabel">Meadow</span>
+        <span id="timeLabel">&#9728;&#65039;</span>
+      </div>
+      <div id="stationBadge"></div>
     </div>
-    <div id="modalBody"></div>
+    <div id="hotbar"></div>
+    <div id="topright">
+      <button id="btnBag" class="iconbtn" aria-label="Inventory">&#9646;</button>
+      <button id="btnCraft" class="iconbtn" aria-label="Craft">&#10022;</button>
+      <button id="btnMenu" class="iconbtn" aria-label="Menu">&#9776;</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="joy" class="touch">
+    <div id="joyBase"><div id="joyStick"></div></div>
+  </div>
+  <div id="actions" class="touch">
+    <button id="btnA" class="actbtn" aria-label="Attack">&#9876;</button>
+    <button id="btnB" class="actbtn small" aria-label="Use / Place">&#10033;</button>
+  </div>
+
+  <div id="modal" class="hidden">
+    <div id="modalCard">
+      <div id="modalHeader">
+        <h2 id="modalTitle">Inventory</h2>
+        <button id="modalClose" class="iconbtn">&#10005;</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div id="title" class="screen">
+    <div class="titlecard">
+      <h1>GREENHEART</h1>
+      <p class="tag">A Hero's Tale</p>
+      <button id="btnPlay" class="bigbtn">Begin Adventure</button>
+      <button id="btnWipe" class="linkbtn">Reset save</button>
+      <p class="hint">Seven biomes to explore: meadow, forest, mountain, snowfield, desert, swamp, ruins. Build a home, cook at a campfire, fight through to the Stalfos in the northeast ruins for a Heart Container.</p>
+      <p class="tiny">Use the menu (&#9776;) to return to the Arcade.</p>
+    </div>
   </div>
 </div>
 
-<div id="title" class="screen">
-  <div class="titlecard">
-    <h1>GREENHEART</h1>
-    <p class="tag">A Hero's Tale</p>
-    <button id="btnPlay" class="bigbtn">Begin Adventure</button>
-    <button id="btnWipe" class="linkbtn">Reset save</button>
-    <p class="hint">Seven biomes to explore: meadow, forest, mountain, snowfield, desert, swamp, ruins. Build a home, cook at a campfire, fight through to the Stalfos in the northeast ruins for a Heart Container.</p>
-    <p class="tiny">Tap Share &rarr; Add to Home Screen for fullscreen play.</p>
-  </div>
-</div>
+<!-- Soccer game container -->
+<div id="soccerGame" class="gameContainer hidden"></div>
 
 <script src="game.js"></script>
+<script src="soccer.js"></script>
+<script src="hub.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
