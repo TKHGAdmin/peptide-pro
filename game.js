@@ -1026,6 +1026,11 @@ function openMenu() {
   mk('Resume', closeModal);
   mk('Save now', () => { save(); showToast('Saved'); });
   mk('Return to title', () => { save(); closeModal(); showTitle(); });
+  mk('Return to Arcade', () => {
+    save(); closeModal();
+    window.Greenheart.stop();
+    if (window.Greenheart.onReturnToHub) window.Greenheart.onReturnToHub();
+  });
   mk('Reset save (new world)', () => {
     if (confirm('Wipe save and start over?')) { wipe(); newGame(); renderHotbar(); closeModal(); showToast('A new realm awaits'); }
   });
@@ -2246,6 +2251,17 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { paused = true; if (state) save(); }
 });
 
-showTitle();
-requestAnimationFrame(tick);
+// Standalone-or-hub entry. Hub calls Greenheart.start() / Greenheart.stop().
+let _ghStarted = false;
+window.Greenheart = {
+  start: function () {
+    showTitle();
+    if (!_ghStarted) { _ghStarted = true; lastTime = performance.now(); requestAnimationFrame(tick); }
+  },
+  stop: function () {
+    paused = true;
+    if (state) save();
+  },
+  onReturnToHub: null,
+};
 })();

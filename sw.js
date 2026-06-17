@@ -1,9 +1,11 @@
-const CACHE = 'greenheart-v2';
+const CACHE = 'arcade-v1';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
+  './hub.js',
   './game.js',
+  './soccer.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',

@@ -19,6 +19,33 @@ html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:v
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
   font-size:16px;line-height:1.3;overscroll-behavior:none}
 body{position:fixed;inset:0}
+
+/* Game containers (greenheart, soccer) — full screen, swap in/out from hub */
+.gameContainer{position:fixed;inset:0;background:var(--bg)}
+.gameContainer.hidden{display:none}
+
+/* Hub */
+.hub{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%, #1a3a2a 0%, #06120a 70%);
+  color:var(--ink);padding:calc(var(--safe-t) + 24px) 16px calc(var(--safe-b) + 24px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;z-index:50}
+.hub.hidden{display:none}
+.hubInner{width:100%;max-width:380px;text-align:center}
+.hubTitle{font-size:44px;letter-spacing:.2em;color:var(--accent);margin:0 0 6px;text-shadow:0 0 24px rgba(244,210,74,.35)}
+.hubSubtitle{color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 28px}
+.hubGames{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.gameCard{background:rgba(20,40,30,.78);border:1.5px solid rgba(255,255,255,.08);color:var(--ink);
+  padding:18px;border-radius:18px;display:flex;align-items:center;gap:16px;cursor:pointer;
+  text-align:left;font-family:inherit;transition:transform .1s, border-color .15s, background .15s}
+.gameCard:active{transform:scale(.98)}
+.gameCard:hover{border-color:var(--accent)}
+.gcIcon{font-size:46px;line-height:1;flex-shrink:0;width:64px;height:64px;
+  background:rgba(255,255,255,.04);border-radius:14px;display:grid;place-items:center}
+.gcText{flex:1;min-width:0}
+.gcName{font-size:19px;font-weight:800;letter-spacing:.04em}
+.gcDesc{font-size:13px;color:var(--accent);margin-top:2px}
+.gcSmall{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.hubFoot{color:var(--muted);font-size:11px;margin-top:24px}
+
 canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#1a3a1a}
 
 /* HUD */
@@ -106,3 +133,96 @@ canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block;image
   .actbtn{width:72px;height:72px;font-size:28px}
   .actbtn.small{width:52px;height:52px;font-size:20px}
 }
+
+/* =========================================================================
+ * Soccer (Cup Manager) styles
+ * ========================================================================= */
+#soccerGame{background:#08140e;color:#f0f4dc;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.sPanel{padding:calc(var(--safe-t) + 12px) 14px calc(var(--safe-b) + 24px);max-width:480px;margin:0 auto}
+.sHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px}
+.sBtn{background:rgba(255,255,255,.08);color:#f0f4dc;border:1px solid rgba(255,255,255,.1);padding:8px 12px;border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
+.sBtn:active{transform:scale(.96)}
+.sTitle{font-size:16px;font-weight:800;letter-spacing:.06em;text-align:center;flex:1;text-transform:uppercase;color:var(--accent)}
+
+/* Team picker */
+.teamGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.groupLabel{grid-column:1/-1;color:var(--accent);font-weight:800;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-top:14px;text-align:center}
+.groupLabel:first-of-type{margin-top:0}
+.teamCard{background:rgba(20,40,30,.7);border:1.5px solid rgba(255,255,255,.08);padding:14px 8px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;text-align:center;color:#f0f4dc;font-family:inherit}
+.teamCard:active{transform:scale(.97)}
+.teamCard.selected{border-color:var(--accent);background:rgba(244,210,74,.15);box-shadow:0 0 0 2px rgba(244,210,74,.25)}
+.teamFlag{font-size:34px;line-height:1}
+.teamName{font-size:13px;font-weight:700}
+.teamRating{font-size:10px;color:var(--muted)}
+
+.sBig{display:block;width:100%;padding:16px;font-size:17px;background:var(--accent);color:#1a1a0a;border:0;border-radius:14px;font-weight:800;letter-spacing:.06em;cursor:pointer;margin-top:14px;font-family:inherit}
+.sBig:disabled{opacity:.4;background:rgba(255,255,255,.1);color:#888;cursor:not-allowed}
+.sBig.sGo{background:linear-gradient(180deg,#4ad07a,#2a9050)}
+
+/* Home cards */
+.sStage{text-align:center;color:var(--accent);font-weight:800;font-size:13px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px}
+.sCard{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-bottom:12px}
+.sCrown{background:linear-gradient(180deg, rgba(244,210,74,.2), rgba(0,0,0,.32));border-color:rgba(244,210,74,.4)}
+.matchRow{display:flex;justify-content:space-around;align-items:center;padding:10px 0;gap:8px}
+.matchSide{text-align:center;flex:1;min-width:0}
+.matchFlag{font-size:34px;line-height:1}
+.matchTeamName{font-size:12px;color:#f0f4dc;margin-top:3px}
+.matchOvr{font-size:10px;color:var(--muted)}
+.vs{font-size:14px;color:var(--accent);font-weight:800;letter-spacing:.1em}
+
+.sActions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.sBtn2{background:rgba(20,40,30,.7);border:1px solid rgba(255,255,255,.08);color:#f0f4dc;padding:10px 6px;border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
+.sBtn2:active{transform:scale(.97)}
+
+.sNews{margin-top:18px}
+.sNews h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;margin:0 0 6px}
+.newsLine{font-size:12px;color:#cbd9b8;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+
+/* Match playback */
+.sMatchHead{display:flex;justify-content:space-around;align-items:center;background:rgba(0,0,0,.4);border-radius:14px;padding:12px;margin-bottom:12px}
+.sScore{font-size:34px;font-weight:900;text-align:center;color:var(--accent)}
+.sMin{font-size:11px;color:var(--muted);text-align:center;letter-spacing:.1em}
+.sEvent{background:rgba(0,0,0,.32);border-radius:14px;padding:14px;margin-bottom:12px;min-height:110px}
+.evHead{font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px}
+.evNarr{font-size:13px;color:#cbd9b8;margin-bottom:8px;font-style:italic}
+.evRoll{background:rgba(0,0,0,.4);padding:8px 10px;border-radius:8px;font-family:Menlo,Monaco,monospace;font-size:13px;color:var(--accent);margin-bottom:8px}
+.evOutcome{font-weight:800;font-size:15px;margin-top:6px;padding:6px 0}
+.evGoal{color:#3ad07a}
+.evSave{color:#9aab8a}
+.evMiss{color:#9aab8a}
+.evCrit{color:#f44a4a}
+
+/* Squad list */
+.playerRow{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.05)}
+.playerRow.starRow{background:rgba(244,210,74,.04)}
+.playerRow.xi{border-left:3px solid var(--accent);padding-left:8px}
+.playerPos{width:42px;text-align:center;font-weight:800;color:var(--accent);font-size:12px;background:rgba(244,210,74,.1);padding:4px 0;border-radius:6px}
+.playerName{flex:1;min-width:0}
+.playerName > div:first-child{font-size:14px;font-weight:600}
+.playerSub{font-size:11px;color:var(--muted);margin-top:2px}
+.playerRating{font-weight:800;font-size:18px;color:#f0f4dc;background:rgba(0,0,0,.3);padding:4px 8px;border-radius:8px;min-width:36px;text-align:center}
+
+/* Tactics */
+.pitch{background:linear-gradient(180deg,#2a6a3a,#1a4a2a);border-radius:14px;padding:8px;position:relative;aspect-ratio:3/4;margin-bottom:16px;
+  border:2px solid #f4f4ee;box-shadow:inset 0 0 0 2px rgba(255,255,255,.05)}
+.pitchLine{position:absolute;left:8px;right:8px;top:50%;height:2px;background:rgba(255,255,255,.4)}
+.pitchCircle{position:absolute;left:50%;top:50%;width:60px;height:60px;margin-left:-30px;margin-top:-30px;border:2px solid rgba(255,255,255,.4);border-radius:50%}
+.pitchPlayer{position:absolute;transform:translate(-50%,-50%);width:36px;height:36px;background:rgba(244,210,74,.95);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#1a1a0a;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.4);z-index:2}
+.tacticGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
+.tacticBtn{background:rgba(20,40,30,.7);border:1.5px solid rgba(255,255,255,.08);color:#f0f4dc;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;text-align:center;font-size:13px;font-weight:700}
+.tacticBtn:active{transform:scale(.97)}
+.tacticBtn.active{border-color:var(--accent);background:rgba(244,210,74,.15);box-shadow:0 0 0 2px rgba(244,210,74,.2)}
+
+/* Bracket / standings */
+.groupBlock{margin-bottom:14px}
+.groupHead{font-weight:800;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid rgba(244,210,74,.2)}
+.standingRow{font-size:13px;padding:5px 0;color:#cbd9b8;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between}
+.standingRow.you{color:var(--accent);font-weight:700}
+.standRight{color:var(--muted);font-size:12px}
+
+/* Flash toast */
+.soccerFlash{position:fixed;top:calc(var(--safe-t) + 12px);left:50%;transform:translate(-50%,-30px);background:rgba(0,0,0,.85);color:var(--ink);padding:10px 18px;border-radius:12px;font-size:13px;z-index:1000;opacity:0;transition:opacity .25s, transform .25s}
+.soccerFlash.show{opacity:1;transform:translate(-50%,0)}
+
+/* Soccer headings */
+.sPanel h3{font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:14px 0 8px}
