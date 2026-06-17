@@ -37,8 +37,13 @@ canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block;image
 /* Rupee count */
 #rupees{padding:4px 10px;background:var(--panel);border:1px solid var(--stroke);border-radius:10px;font-weight:700;font-size:13px;color:var(--rupee);width:max-content}
 
+/* Biome / time-of-day row */
+#biomeRow{display:flex;align-items:center;gap:8px;padding:3px 10px;background:var(--panel);border:1px solid var(--stroke);border-radius:10px;font-size:12px;width:max-content;color:var(--ink)}
+#biomeLabel{font-weight:600;letter-spacing:.04em}
+#timeLabel{font-size:14px}
+
 /* Station badge */
-#stationBadge{padding:3px 10px;background:var(--panel);border:1px solid var(--stroke);border-radius:10px;font-size:11px;opacity:0;transition:opacity .2s;width:max-content}
+#stationBadge{padding:3px 10px;background:var(--panel);border:1px solid var(--stroke);border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;width:max-content}
 
 #hotbar{position:absolute;top:calc(var(--safe-t) + 10px);left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto}
 .slot{width:44px;height:44px;border-radius:10px;background:var(--panel);border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:20px;position:relative}
