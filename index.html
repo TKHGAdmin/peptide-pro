@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Deepvein — Top-Down Survival</title>
+<title>Greenheart — A Hero's Tale</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Deepvein" />
-<meta name="theme-color" content="#101018" />
+<meta name="apple-mobile-web-app-title" content="Greenheart" />
+<meta name="theme-color" content="#1a4a1a" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="icon" type="image/png" href="icon-192.png" />
@@ -19,8 +19,9 @@
 
 <div id="hud">
   <div id="stats">
-    <div class="bar hp"><span id="hpFill"></span><label id="hpLabel">HP</label></div>
-    <div class="bar hu"><span id="huFill"></span><label id="huLabel">Hunger</label></div>
+    <div id="hearts"></div>
+    <div id="rupees">&#128142; 0</div>
+    <div id="stationBadge"></div>
   </div>
   <div id="hotbar"></div>
   <div id="topright">
@@ -35,8 +36,8 @@
   <div id="joyBase"><div id="joyStick"></div></div>
 </div>
 <div id="actions" class="touch">
-  <button id="btnA" class="actbtn" aria-label="Attack / Mine">&#9876;</button>
-  <button id="btnB" class="actbtn small" aria-label="Use Item">&#10033;</button>
+  <button id="btnA" class="actbtn" aria-label="Attack">&#9876;</button>
+  <button id="btnB" class="actbtn small" aria-label="Use / Place">&#10033;</button>
 </div>
 
 <div id="modal" class="hidden">
@@ -51,12 +52,12 @@
 
 <div id="title" class="screen">
   <div class="titlecard">
-    <h1>DEEPVEIN</h1>
-    <p class="tag">A top-down mining survival game</p>
-    <button id="btnPlay" class="bigbtn">Enter the Caves</button>
+    <h1>GREENHEART</h1>
+    <p class="tag">A Hero's Tale</p>
+    <button id="btnPlay" class="bigbtn">Begin Adventure</button>
     <button id="btnWipe" class="linkbtn">Reset save</button>
-    <p class="hint">Tap the joystick to move. Tap the attack button to mine walls and fight slimes. Eat to survive.</p>
-    <p class="tiny">Add to Home Screen for fullscreen play.</p>
+    <p class="hint">Cut grass for rupees. Chop trees for wood. Mine rocks for stone. Build a workbench, then a forge, then a home. The ruins to the northeast hide iron.</p>
+    <p class="tiny">Tap Share &rarr; Add to Home Screen for fullscreen play.</p>
   </div>
 </div>
 

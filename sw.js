@@ -1,4 +1,4 @@
-const CACHE = 'deepvein-v2';
+const CACHE = 'greenheart-v1';
 const ASSETS = [
   './',
   './index.html',
