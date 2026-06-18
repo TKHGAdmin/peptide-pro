@@ -476,13 +476,11 @@ function headerBar(title, backFn) {
 // =========================================================================
 function renderTitleScreen() {
   container.innerHTML = '';
-  const p = el('div', { cls:'sPanel sPanelStickyBtn' });
+  const p = el('div', { cls:'sPanel' });
   p.appendChild(headerBar('Cup Manager'));
-  p.appendChild(el('p', { text:'Pick a nation. Scroll the list, tap a country card, then tap the gold button at the bottom.',
+  p.appendChild(el('p', { text:'Tap a country to begin your campaign.',
     style:{fontSize:'13px', color:'var(--muted)', textAlign:'center', marginBottom:'12px'}}));
 
-  let selected = null;
-  let selectBtn = null;
   const grid = el('div', { cls:'teamGrid' });
   const byGroup = {};
   for (const t of TEAMS) (byGroup[t.group] = byGroup[t.group] || []).push(t);
@@ -495,25 +493,32 @@ function renderTitleScreen() {
         el('div', { cls:'teamRating', text:'OVR '+t.rating }),
       ]});
       card.dataset.code = t.code;
-      card.addEventListener('click', () => {
-        if (selected) selected.classList.remove('selected');
-        selected = card; card.classList.add('selected');
-        selectBtn.disabled = false;
-        selectBtn.textContent = '▶ Manage ' + t.name + ' ' + t.flag;
-        selectBtn.classList.add('pulseHint');
-      });
+      card.addEventListener('click', () => confirmTeam(t));
       grid.appendChild(card);
     }
   }
   p.appendChild(grid);
-
-  selectBtn = el('button', { cls:'sBig sStickyBottom', text:'Tap a country above', disabled:true, on:{click:()=>{
-    if (!selected) return;
-    newCampaign(selected.dataset.code);
-    renderHome();
-  }}});
-  p.appendChild(selectBtn);
   container.appendChild(p);
+}
+
+// Single-tap confirm modal — guaranteed visible even on tiny phones.
+function confirmTeam(t) {
+  const overlay = el('div', { cls:'sConfirm', children:[
+    el('div', { cls:'sConfirmCard', children:[
+      el('div', { style:{fontSize:'52px',textAlign:'center'}, text: t.flag }),
+      el('div', { style:{fontSize:'20px',fontWeight:'800',textAlign:'center',marginTop:'4px'}, text: t.name }),
+      el('div', { style:{fontSize:'13px',color:'var(--muted)',textAlign:'center'}, text: 'Group '+t.group+' · OVR '+t.rating }),
+      el('p', { text:'Start the campaign as head coach of '+t.name+'?',
+        style:{textAlign:'center',fontSize:'14px',margin:'16px 0 12px'}}),
+      el('div', { style:{display:'flex',gap:'8px'}, children:[
+        el('button', { cls:'sBtn2', text:'Cancel', style:{flex:'1',padding:'14px'},
+          on:{click:()=>overlay.remove()}}),
+        el('button', { cls:'sBig', text:'Start ▶', style:{flex:'2',margin:'0'},
+          on:{click:()=>{ overlay.remove(); newCampaign(t.code); renderHome(); }}}),
+      ]}),
+    ]}),
+  ]});
+  container.appendChild(overlay);
 }
 
 function renderHome() {
