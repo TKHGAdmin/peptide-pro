@@ -136,6 +136,9 @@ function newCampaign(yourCode) {
     stage: 'group_1',
     formation: '4-3-3',
     style: 'balanced',
+    morale: 0,                          // -20..+20 — affects own team's atk rolls
+    goalsLog: [],                       // [{player, team, minute, stage}]
+    pendingPress: null,                 // press conference shown before next match
     log: ['Campaign begins. Group ' + TEAMS.find(t=>t.code===yourCode).group + ' awaits.'],
     eliminated: false,
     champion: false,
@@ -206,6 +209,65 @@ function positionMatches(have, slot) {
   return (fam[slot] || []).includes(have);
 }
 
+// Pre-render varied outcome narration so the same event always reads the same way.
+function pickNarration(outcome, attacker, defender, gk, counterAtk, counterOutcome) {
+  const a = attacker.name, d = defender.name, g = gk.name;
+  const VARS = {
+    crit_goal: [
+      `NAT 20! 💥 ${a} unleashes the impossible — GOAL!`,
+      `NAT 20! ⚡ ${a} channels divine fury — GOAL!`,
+      `NAT 20! 🌟 ${a} bends the laws of physics — GOAL!`,
+      `NAT 20! 🔥 ${a} chips the ${g} from 35 yards — GOAL OF THE TOURNAMENT!`,
+    ],
+    goal: [
+      `⚽ GOAL! ${a} beats ${g} into the corner.`,
+      `⚽ GOAL! ${a} rifles it past ${g}.`,
+      `⚽ GOAL! ${a} side-foots it home with ice in his veins.`,
+      `⚽ GOAL! ${a} curls it into the top corner — ${g} can only watch.`,
+      `⚽ GOAL! ${a} smashes it through ${g}'s legs!`,
+      `⚽ GOAL! ${a} heads it in from the back post!`,
+      `⚽ GOAL! ${a} pokes home a rebound after ${g} can only parry.`,
+    ],
+    save: [
+      `🧤 SAVE — ${g} parries it away at full stretch.`,
+      `🧤 SAVE — ${g} reads ${a} all the way.`,
+      `🧤 SAVE — ${g} pushes it onto the post and clears.`,
+      `🧤 SAVE — ${g} stays huge to deny ${a}.`,
+      `🧤 SAVE — point-blank reflex from ${g}.`,
+    ],
+    miss: [
+      `↗ ${a}'s shot drifts wide of the far post.`,
+      `↗ ${a} rattles the crossbar — inches!`,
+      `↗ ${a} skies it over the bar.`,
+      `↗ ${a} pulls it across the face of goal.`,
+      `↗ ${a} drags his shot wide of the near post.`,
+    ],
+    lost: [
+      `${d} reads the play and snuffs out the chance.`,
+      `${d} dispossesses ${a} cleanly.`,
+      `${d} sticks a leg out at the perfect moment.`,
+      `${a} runs into a wall of ${d}.`,
+      `${d} shoulders ${a} off the ball at the edge of the box.`,
+    ],
+    crit_fail: [
+      `NAT 1! 💀 ${a} loses the ball cheaply.`,
+      `NAT 1! 💀 ${a} slips at the worst moment.`,
+      `NAT 1! 💀 ${a}'s heavy touch is intercepted.`,
+      `NAT 1! 💀 ${a} miscontrols badly — chaos.`,
+    ],
+  };
+  const lines = VARS[outcome] || [outcome];
+  const main = pick(lines);
+  if (counterOutcome === 'goal' && counterAtk) {
+    return main + `  ⚡ ${counterAtk.name} converts the counter — they score!`;
+  } else if (counterOutcome === 'save') {
+    return main + `  Counter ends with a GK save.`;
+  } else if (counterOutcome === 'wide') {
+    return main + `  Counter fizzles wide of goal.`;
+  }
+  return main;
+}
+
 function simulateMatch(homeCode, awayCode, isYours) {
   const homeStyle = (homeCode === state.yourTeam) ? state.style : 'balanced';
   const awayStyle = (awayCode === state.yourTeam) ? state.style : 'balanced';
@@ -241,9 +303,11 @@ function simulateMatch(homeCode, awayCode, isYours) {
     const defender = pick(defenderPool) || pick(defSquad);
     const gk = defSquad.find(p => p.pos === 'GK') || defSquad[0];
 
-    // d20 attack
+    // d20 attack. User-team attacks get a morale modifier (-3..+3).
+    const isUserAttack = (homeAttacking ? homeCode : awayCode) === state.yourTeam;
+    const moraleMod = isUserAttack ? Math.round((state.morale || 0) / 7) : 0;
     const r20 = rint(1, 20);
-    const atkMod = Math.floor(attacker.rating / 6) + atkStyle.atkMod;
+    const atkMod = Math.floor(attacker.rating / 6) + atkStyle.atkMod + moraleMod;
     const defMod = Math.floor(defender.rating / 6) + defStyle.defMod;
     const dc = 11 + defMod;
     const total = r20 + atkMod;
@@ -267,19 +331,22 @@ function simulateMatch(homeCode, awayCode, isYours) {
     else outcome = 'lost';
 
     let counterOutcome = null;
+    let counterAtk = null;
     if (outcome === 'crit_fail' || (outcome === 'lost' && chance(0.18))) {
       // Quick counter — opponent gets a chance
       const cAtkPool = (homeAttacking ? awayAttackerPool : homeAttackerPool);
-      const cAtk = pick(cAtkPool) || pick(homeAttacking ? away : home);
-      const cRoll = rint(1, 20) + Math.floor(cAtk.rating / 6) + 2;
+      counterAtk = pick(cAtkPool) || pick(homeAttacking ? away : home);
+      const cRoll = rint(1, 20) + Math.floor(counterAtk.rating / 6) + 2;
       counterOutcome = cRoll >= 16 ? 'goal' : (cRoll >= 12 ? 'save' : 'wide');
       if (counterOutcome === 'goal') {
         if (homeAttacking) aScore++; else hScore++;
+        state.goalsLog.push({ player: counterAtk.name, team: homeAttacking ? awayCode : homeCode, minute, stage: state.stage });
       }
     }
 
     if (outcome === 'goal' || outcome === 'crit_goal') {
       if (homeAttacking) hScore++; else aScore++;
+      state.goalsLog.push({ player: attacker.name, team: homeAttacking ? homeCode : awayCode, minute, stage: state.stage });
     }
 
     events.push({
@@ -288,7 +355,10 @@ function simulateMatch(homeCode, awayCode, isYours) {
       def: defender.name, defPos: defender.pos,
       gk: gk.name,
       r20, atkMod, dc, total, gkSave, outcome, counterOutcome,
+      counterAtk: counterAtk ? counterAtk.name : null,
       hScore, aScore,
+      // Pre-render a narration string for variety (so the same event always reads the same way).
+      narration: pickNarration(outcome, attacker, defender, gk, counterAtk, counterOutcome),
     });
   }
   // Injuries on user's starters only
@@ -528,25 +598,89 @@ function renderHome() {
   p.appendChild(headerBar(me.flag + ' ' + me.name));
 
   if (state.champion) {
-    p.appendChild(el('div', { cls:'sCard sCrown', children:[
-      el('h2', { text:'🏆 WORLD CHAMPIONS 🏆', style:{color:'#f4d24a', textAlign:'center', margin:'0 0 8px'}}),
-      el('p', { text: me.name + ' lifts the trophy! A legendary campaign.', style:{textAlign:'center'}}),
-      el('button', { cls:'sBig', text:'New Campaign', on:{click:()=>{wipe(); renderTitleScreen();}}}),
-    ]}));
+    p.appendChild(renderTrophyCeremony(me));
   } else if (state.eliminated) {
     p.appendChild(el('div', { cls:'sCard', children:[
-      el('h2', { text:'Eliminated', style:{textAlign:'center', margin:'0 0 8px'}}),
+      el('div', { text:'😔', style:{fontSize:'56px',textAlign:'center'}}),
+      el('h2', { text:'Eliminated', style:{textAlign:'center', margin:'4px 0 8px'}}),
       el('p', { text:'Your tournament ends here. The fans appreciated the effort.', style:{textAlign:'center'}}),
-      el('button', { cls:'sBig', text:'New Campaign', on:{click:()=>{wipe(); renderTitleScreen();}}}),
     ]}));
+    // Recap awards on elimination too
+    p.appendChild(renderAwardsCard());
+    p.appendChild(el('button', { cls:'sBig', text:'New Campaign', on:{click:()=>{wipe(); renderTitleScreen();}}}));
   } else {
     p.appendChild(stageBadge());
+    p.appendChild(moraleCard());
     p.appendChild(nextMatchCard());
+    // Golden Boot teaser
+    const top = topScorers(1);
+    if (top.length && top[0].goals > 0) {
+      const t = TEAMS.find(tm => tm.code === top[0].team);
+      p.appendChild(el('div', { cls:'sCard', children:[
+        el('h3', { text:'🥇 Golden Boot leader', style:{margin:'0 0 4px',color:'var(--accent)',fontSize:'11px',letterSpacing:'.12em',textTransform:'uppercase'}}),
+        el('div', { html:`${t.flag} <b>${top[0].player}</b> &nbsp;<span style="color:var(--accent);font-weight:700">${top[0].goals}⚽</span>`,
+          style:{fontSize:'13px'}}),
+      ]}));
+    }
   }
 
   p.appendChild(actionBar());
   p.appendChild(newsLog());
   container.appendChild(p);
+}
+
+function moraleCard() {
+  const m = state.morale || 0;
+  let label, color;
+  if (m >= 12) { label = 'High morale 🔥'; color = '#3ad07a'; }
+  else if (m >= 4) { label = 'Confident 💪'; color = '#7ad07a'; }
+  else if (m >= -3) { label = 'Steady 🟰'; color = 'var(--muted)'; }
+  else if (m >= -11) { label = 'Tense 😬'; color = '#f4d24a'; }
+  else { label = 'Crisis 🚨'; color = '#f44a4a'; }
+  return el('div', { cls:'sCard', style:{padding:'8px 12px'}, children:[
+    el('div', { html:`Squad mood: <span style="color:${color};font-weight:700">${label}</span> <span style="float:right;color:var(--muted);font-size:11px">morale ${m >= 0 ? '+' : ''}${m}</span>`,
+      style:{fontSize:'12px'}}),
+  ]});
+}
+
+function renderTrophyCeremony(me) {
+  const wrap = el('div', { cls:'sCard sCrown' });
+  wrap.appendChild(el('div', { text:'🏆', style:{fontSize:'72px',textAlign:'center',filter:'drop-shadow(0 4px 12px rgba(244,210,74,.6))'}}));
+  wrap.appendChild(el('h2', { text:'WORLD CHAMPIONS', style:{color:'#f4d24a', textAlign:'center', margin:'4px 0 0',letterSpacing:'.12em'}}));
+  wrap.appendChild(el('div', { text:me.flag + ' ' + me.name, style:{textAlign:'center',fontSize:'22px',fontWeight:'800',margin:'4px 0 12px'}}));
+  wrap.appendChild(el('p', { text:'The trophy is lifted into the air. Confetti rains down. You have written your name into history.',
+    style:{textAlign:'center',fontStyle:'italic',color:'var(--muted)',fontSize:'13px',margin:'0 0 12px'}}));
+  wrap.appendChild(renderAwardsCard(true));
+  wrap.appendChild(el('button', { cls:'sBig', text:'New Campaign', on:{click:()=>{wipe(); renderTitleScreen();}}}));
+  return wrap;
+}
+
+function renderAwardsCard(asInner) {
+  const wrap = el('div', asInner ? { style:{marginTop:'12px'}} : { cls:'sCard' });
+  wrap.appendChild(el('h3', { text:'🏅 Tournament awards', style:{margin:'0 0 8px',color:'var(--accent)',fontSize:'12px',letterSpacing:'.12em',textTransform:'uppercase'}}));
+  const top = topScorers(5);
+  if (top.length) {
+    wrap.appendChild(el('div', { html:'<b>Golden Boot</b>', style:{fontSize:'12px',color:'var(--muted)',marginTop:'4px'}}));
+    for (let i = 0; i < top.length; i++) {
+      const p = top[i];
+      const t = TEAMS.find(tm => tm.code === p.team) || {};
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '  ';
+      wrap.appendChild(el('div', { html:
+        `${medal} ${t.flag} <b>${p.player}</b> <span style="float:right;color:var(--accent);font-weight:700">${p.goals}⚽</span>`,
+        style:{fontSize:'13px',padding:'3px 0'}}));
+    }
+  } else {
+    wrap.appendChild(el('div', { text:'No goals yet.', style:{fontSize:'12px',color:'var(--muted)'}}));
+  }
+  // Best XI rated of your team — sort by rating, top 11
+  const yt = state.yourTeam;
+  const roster = state.rosters[yt].slice().sort((a, b) => b.rating - a.rating).slice(0, 11);
+  wrap.appendChild(el('div', { html:'<b>Your XI MVPs</b>', style:{fontSize:'12px',color:'var(--muted)',marginTop:'10px'}}));
+  for (const p of roster.slice(0, 5)) {
+    wrap.appendChild(el('div', { html:`★ ${p.name} <span style="float:right;color:var(--accent);font-weight:700">${p.rating}</span>`,
+      style:{fontSize:'12px',padding:'2px 0'}}));
+  }
+  return wrap;
 }
 
 function stageBadge() {
@@ -581,7 +715,7 @@ function nextMatchCard() {
     ]}),
     el('div', { text:'Formation: ' + state.formation + ' · Style: ' + STYLES[state.style].name,
       style:{fontSize:'12px', color:'var(--muted)', textAlign:'center', marginTop:'4px'}}),
-    el('button', { cls:'sBig sGo', text:'⚽ Kick Off', on:{click:()=>renderMatchStart()}}),
+    el('button', { cls:'sBig sGo', text:'⚽ Kick Off', on:{click:()=>onKickoff()}}),
   ]});
 }
 
@@ -753,6 +887,108 @@ function koBlock(label, matches) {
 // =========================================================================
 let currentMatch = null;
 let eventIndex = 0;
+// On kickoff: 45% chance to interrupt with a press conference. Player answer
+// adjusts morale, which feeds into the user team's attack rolls next match.
+function onKickoff() {
+  if (Math.random() < 0.45) renderPressConference();
+  else renderMatchStart();
+}
+
+const PRESS_QUESTIONS = [
+  {
+    when: 'always',
+    q: 'Reporter: "Coach, how do you assess the threat of {opp}?"',
+    options: [
+      { text: '"We respect them. It will be a battle.”', mood: +2, tone:'humble' },
+      { text: '"They should be worried about us, not the other way around.”', mood: +4, tone:'cocky', risk:true },
+      { text: '"I have not had time to study them in detail."', mood: -2, tone:'flat' },
+    ],
+  },
+  {
+    when: 'always',
+    q: 'Reporter: "There are rumors of unrest in the squad. Your response?"',
+    options: [
+      { text: '"There is no unrest. This squad is family."', mood: +3, tone:'unifying' },
+      { text: '"I will not comment on locker-room talk."', mood: 0, tone:'guarded' },
+      { text: '"Some players need to step up. They know who they are."', mood: -5, tone:'harsh' },
+    ],
+  },
+  {
+    when: 'lowMorale',
+    q: 'Reporter: "After the last result, do you still have the dressing room?"',
+    options: [
+      { text: '"Absolutely. We have each other’s backs."', mood: +5, tone:'unifying' },
+      { text: '"That is for the players to answer on the pitch."', mood: 0, tone:'deflect' },
+      { text: '"That question disrespects this group. I am done."', mood: +2, tone:'storm-out', risk:true },
+    ],
+  },
+  {
+    when: 'highMorale',
+    q: 'Reporter: "You look unstoppable. Are you the favorites now?"',
+    options: [
+      { text: '"We focus on the next match. Nothing else."', mood: +1, tone:'humble' },
+      { text: '"No one in this tournament can stop us."', mood: +3, tone:'cocky', risk:true },
+      { text: '"Favorites are decided by results, not press conferences."', mood: +2, tone:'cool' },
+    ],
+  },
+  {
+    when: 'knockout',
+    q: 'Reporter: "It is win or go home. What is the message to the players?"',
+    options: [
+      { text: '"Play your game. Trust the work."', mood: +3, tone:'steady' },
+      { text: '"Leave nothing on the pitch. Empty the tank."', mood: +4, tone:'fired-up' },
+      { text: '"This is what we have been waiting for. Embrace it."', mood: +2, tone:'philosophical' },
+    ],
+  },
+];
+
+function renderPressConference() {
+  const next = getNextOpponent();
+  const oppCode = next.home === state.yourTeam ? next.away : next.home;
+  const opp = TEAMS.find(t => t.code === oppCode);
+  const me = TEAMS.find(t => t.code === state.yourTeam);
+  // Pick a context-appropriate question
+  const lowM = (state.morale || 0) < -5;
+  const highM = (state.morale || 0) > 8;
+  const isKO = ['r32','r16','qf','sf','final'].includes(state.stage);
+  const pool = PRESS_QUESTIONS.filter(q =>
+    q.when === 'always' ||
+    (q.when === 'lowMorale' && lowM) ||
+    (q.when === 'highMorale' && highM) ||
+    (q.when === 'knockout' && isKO)
+  );
+  const Q = pick(pool);
+
+  container.innerHTML = '';
+  const p = el('div', { cls:'sPanel' });
+  p.appendChild(headerBar('Press Conference'));
+  p.appendChild(el('div', { cls:'sCard', children:[
+    el('div', { text:'🎙️', style:{fontSize:'40px',textAlign:'center'}}),
+    el('div', { text:'Pre-match press · ' + me.flag + ' ' + me.name + ' vs ' + opp.flag + ' ' + opp.name,
+      style:{textAlign:'center',color:'var(--muted)',fontSize:'12px',margin:'4px 0 10px'}}),
+    el('p', { text: Q.q.replace('{opp}', opp.name),
+      style:{fontSize:'15px',fontStyle:'italic',margin:'0 0 10px'}}),
+    el('div', { style:{display:'flex',flexDirection:'column',gap:'8px'}, children:
+      Q.options.map(opt => el('button', { cls:'tacticBtn', text: opt.text, style:{textAlign:'left'},
+        on:{click:()=>{
+          let m = opt.mood;
+          // Risky answers can backfire — 30% chance to halve or invert.
+          if (opt.risk) {
+            const r = Math.random();
+            if (r < 0.3) m = -Math.abs(m);
+          }
+          state.morale = Math.max(-20, Math.min(20, (state.morale || 0) + m));
+          state.log.push(`Press: "${opt.text.slice(0, 40)}…" (${m >= 0 ? '+' : ''}${m} morale)`);
+          // Brief acknowledgement
+          flash((m >= 0 ? '+' : '') + m + ' morale');
+          renderMatchStart();
+        }},
+      })),
+    }),
+  ]}));
+  container.appendChild(p);
+}
+
 function renderMatchStart() {
   // Run the matchday simulation and present user's match progressively.
   const userMatch = playMatchday();
@@ -804,34 +1040,16 @@ function renderEventCard(e) {
   wrap.appendChild(el('div', { html:`${e.atk} ${CLASS_FLAVOR[e.atkCls] || 'pushes forward'}…`, cls:'evNarr' }));
   wrap.appendChild(el('div', { cls:'evRoll', html:
     `🎲 <b>d20 = ${e.r20}</b> + ${e.atkMod} → <b>${e.total}</b> &nbsp;vs DC <b>${e.dc}</b> (def: ${e.def})` }));
-  let outcomeText, outcomeCls;
-  if (e.outcome === 'crit_goal') {
-    outcomeText = `NAT 20! 💥 ${e.atk} unleashes the impossible — GOAL!`;
-    outcomeCls = 'evGoal';
-  } else if (e.outcome === 'goal') {
-    outcomeText = `⚽ GOAL! ${e.atk} beats ${e.gk} into the corner.`;
-    outcomeCls = 'evGoal';
-  } else if (e.outcome === 'save') {
-    outcomeText = `🧤 SAVE — ${e.gk} parries it away (GK roll ${e.gkSave}).`;
-    outcomeCls = 'evSave';
-  } else if (e.outcome === 'miss') {
-    outcomeText = `↗ ${e.atk}'s shot drifts wide of the post.`;
-    outcomeCls = 'evMiss';
-  } else if (e.outcome === 'lost') {
-    outcomeText = `${e.def} reads the play and snuffs out the chance.`;
-    outcomeCls = 'evMiss';
-  } else if (e.outcome === 'crit_fail') {
-    outcomeText = `NAT 1! 💀 ${e.atk} loses the ball cheaply.`;
-    outcomeCls = 'evCrit';
-  }
-  wrap.appendChild(el('div', { text:outcomeText, cls:'evOutcome '+outcomeCls }));
-  if (e.counterOutcome) {
-    let cText;
-    if (e.counterOutcome === 'goal') cText = '⚡ COUNTER GOAL! The opponent races up and scores!';
-    else if (e.counterOutcome === 'save') cText = 'Counter-attack ends with a GK save.';
-    else cText = 'Counter-attack fades into nothing.';
-    wrap.appendChild(el('div', { text:cText, cls:'evOutcome ' + (e.counterOutcome === 'goal' ? 'evCrit' : 'evMiss') }));
-  }
+  const outcomeClsMap = {
+    crit_goal:'evGoal', goal:'evGoal',
+    save:'evSave',
+    miss:'evMiss', lost:'evMiss',
+    crit_fail:'evCrit',
+  };
+  const outcomeCls = outcomeClsMap[e.outcome] || 'evMiss';
+  // Use the pre-rendered narration variant (added in v2.1 simulation).
+  const text = e.narration || e.outcome;
+  wrap.appendChild(el('div', { text, cls:'evOutcome '+outcomeCls }));
   return wrap;
 }
 
@@ -850,18 +1068,81 @@ function renderMatchResult() {
   }
   const color = label.startsWith('WIN') ? '#3ad07a' : label === 'DRAW' ? '#f4d24a' : '#f44a4a';
 
-  const wrap = el('div', { cls:'sCard' });
-  wrap.appendChild(el('div', { text:'FULL TIME', style:{color:'var(--muted)', fontSize:'12px', letterSpacing:'.1em', textAlign:'center'}}));
-  wrap.appendChild(el('div', { text:label, style:{color, fontSize:'30px', fontWeight:'800', textAlign:'center'}}));
-  wrap.appendChild(el('div', { text:`${h.name} ${currentMatch.hScore} - ${currentMatch.aScore} ${a.name}`,
+  const wrap = el('div');
+
+  // Big result card
+  const result = el('div', { cls:'sCard' });
+  result.appendChild(el('div', { text:'FULL TIME', style:{color:'var(--muted)', fontSize:'12px', letterSpacing:'.1em', textAlign:'center'}}));
+  result.appendChild(el('div', { text:label, style:{color, fontSize:'32px', fontWeight:'900', textAlign:'center'}}));
+  result.appendChild(el('div', { text:`${h.name} ${currentMatch.hScore} - ${currentMatch.aScore} ${a.name}`,
     style:{textAlign:'center', fontSize:'15px'}}));
-  if (currentMatch.pens) wrap.appendChild(el('div', { text:`Penalties: ${currentMatch.penHome} - ${currentMatch.penAway}`,
+  if (currentMatch.pens) result.appendChild(el('div', { text:`Penalties: ${currentMatch.penHome} - ${currentMatch.penAway}`,
     style:{textAlign:'center', fontSize:'13px', color:'var(--muted)'}}));
+  wrap.appendChild(result);
+
+  // Goal timeline from this match's events
+  const goalEvents = (currentMatch.events || []).filter(e => e.outcome === 'goal' || e.outcome === 'crit_goal' || e.counterOutcome === 'goal');
+  if (goalEvents.length) {
+    const tl = el('div', { cls:'sCard' });
+    tl.appendChild(el('h3', { text:'Goal timeline', style:{margin:'0 0 6px',color:'var(--accent)',fontSize:'12px',letterSpacing:'.12em',textTransform:'uppercase'}}));
+    for (const e of goalEvents) {
+      const homeScored = (e.side === 'h' && (e.outcome === 'goal' || e.outcome === 'crit_goal')) ||
+                        (e.side === 'a' && e.counterOutcome === 'goal');
+      const scorer = e.counterOutcome === 'goal' ? e.counterAtk : e.atk;
+      const tCode = homeScored ? currentMatch.home : currentMatch.away;
+      const tFlag = (TEAMS.find(t => t.code === tCode) || {}).flag || '';
+      tl.appendChild(el('div', { html:
+        `<span style="display:inline-block;width:32px;color:var(--accent);font-weight:700">${e.minute}'</span> ${tFlag} ${scorer}`,
+        style:{fontSize:'13px',padding:'3px 0'}}));
+    }
+    wrap.appendChild(tl);
+  }
+
+  // Player of the Match — biggest single contributor on the user's side
+  if (currentMatch.events) {
+    const contrib = {};
+    for (const e of currentMatch.events) {
+      const userSide = (e.side === 'h' && youHome) || (e.side === 'a' && !youHome);
+      if (!userSide) continue;
+      if (e.outcome === 'goal' || e.outcome === 'crit_goal') {
+        contrib[e.atk] = (contrib[e.atk] || 0) + (e.outcome === 'crit_goal' ? 3 : 2);
+      } else if (e.outcome === 'save') {
+        contrib[e.gk] = (contrib[e.gk] || 0) + 1;
+      }
+    }
+    const sorted = Object.entries(contrib).sort((a,b)=>b[1]-a[1]);
+    if (sorted.length) {
+      wrap.appendChild(el('div', { cls:'sCard', children:[
+        el('h3', { text:'Player of the Match', style:{margin:'0 0 4px',color:'var(--accent)',fontSize:'12px',letterSpacing:'.12em',textTransform:'uppercase'}}),
+        el('div', { text:'🏅 ' + sorted[0][0], style:{fontSize:'16px',fontWeight:'700'}}),
+      ]}));
+    }
+  }
+
+  // Injuries
   if (currentMatch.injuries && currentMatch.injuries.length) {
     const inj = currentMatch.injuries.map(p => `${p.name} (${p.dur}r)`).join(', ');
-    wrap.appendChild(el('div', { text:'Injuries: ' + inj, style:{marginTop:'8px', color:'#f44a4a', fontSize:'13px', textAlign:'center'}}));
+    wrap.appendChild(el('div', { cls:'sCard', children:[
+      el('h3', { text:'Injuries', style:{margin:'0 0 4px',color:'#f44a4a',fontSize:'12px',letterSpacing:'.12em',textTransform:'uppercase'}}),
+      el('div', { text:inj, style:{fontSize:'13px',color:'#f4d4d4'}}),
+    ]}));
   }
-  // Log it
+
+  // Tournament-long Golden Boot leader
+  const top = topScorers(3);
+  if (top.length) {
+    const gb = el('div', { cls:'sCard' });
+    gb.appendChild(el('h3', { text:'🥇 Golden Boot race', style:{margin:'0 0 6px',color:'var(--accent)',fontSize:'12px',letterSpacing:'.12em',textTransform:'uppercase'}}));
+    for (const p of top) {
+      const tt = TEAMS.find(t => t.code === p.team) || {};
+      gb.appendChild(el('div', { html:
+        `${tt.flag || ''} <b>${p.player}</b> <span style="float:right;color:var(--accent);font-weight:700">${p.goals}⚽</span>`,
+        style:{fontSize:'13px',padding:'3px 0'}}));
+    }
+    wrap.appendChild(gb);
+  }
+
+  // Log it (once)
   const logLine = `${h.flag} ${currentMatch.hScore}-${currentMatch.aScore} ${a.flag}` +
     (currentMatch.pens ? ` (pen ${currentMatch.penHome}-${currentMatch.penAway})` : '') + ` — ${label}`;
   if (!state._lastLogged || state._lastLogged !== logLine) {
@@ -870,9 +1151,23 @@ function renderMatchResult() {
     if (currentMatch.injuries && currentMatch.injuries.length) {
       state.log.push('Injury blow: ' + currentMatch.injuries.map(p => p.name).join(', '));
     }
+    // Morale shift from result
+    if (label.startsWith('WIN')) state.morale = Math.min(20, (state.morale || 0) + 4);
+    else if (label === 'LOSS' || label.startsWith('LOSS')) state.morale = Math.max(-20, (state.morale || 0) - 4);
     save();
   }
   return wrap;
+}
+
+function topScorers(n) {
+  if (!state.goalsLog) return [];
+  const map = {};
+  for (const g of state.goalsLog) {
+    const k = g.team + '|' + g.player;
+    if (!map[k]) map[k] = { player: g.player, team: g.team, goals: 0 };
+    map[k].goals++;
+  }
+  return Object.values(map).sort((a, b) => b.goals - a.goals).slice(0, n || 5);
 }
 
 // =========================================================================
