@@ -6,97 +6,10 @@ window.Soccer = (function () {
 // =========================================================================
 // Data
 // =========================================================================
-const TEAMS = [
-  // Group A
-  { code:'QAT', name:'Qatar',        flag:'🇶🇦', group:'A', region:'MEA', rating:67 },
-  { code:'ECU', name:'Ecuador',      flag:'🇪🇨', group:'A', region:'LAT', rating:74 },
-  { code:'SEN', name:'Senegal',      flag:'🇸🇳', group:'A', region:'AFR', rating:79 },
-  { code:'NED', name:'Netherlands',  flag:'🇳🇱', group:'A', region:'WEU', rating:87 },
-  // Group B
-  { code:'ENG', name:'England',      flag:'🏴', group:'B', region:'WEU', rating:88 },
-  { code:'IRN', name:'Iran',         flag:'🇮🇷', group:'B', region:'MEA', rating:72 },
-  { code:'USA', name:'USA',          flag:'🇺🇸', group:'B', region:'NAM', rating:75 },
-  { code:'WAL', name:'Wales',        flag:'🏴', group:'B', region:'WEU', rating:73 },
-  // Group C
-  { code:'ARG', name:'Argentina',    flag:'🇦🇷', group:'C', region:'LAT', rating:92 },
-  { code:'KSA', name:'Saudi Arabia', flag:'🇸🇦', group:'C', region:'MEA', rating:67 },
-  { code:'MEX', name:'Mexico',       flag:'🇲🇽', group:'C', region:'LAT', rating:78 },
-  { code:'POL', name:'Poland',       flag:'🇵🇱', group:'C', region:'EEU', rating:80 },
-  // Group D
-  { code:'FRA', name:'France',       flag:'🇫🇷', group:'D', region:'WEU', rating:91 },
-  { code:'AUS', name:'Australia',    flag:'🇦🇺', group:'D', region:'OCE', rating:71 },
-  { code:'DEN', name:'Denmark',      flag:'🇩🇰', group:'D', region:'WEU', rating:82 },
-  { code:'TUN', name:'Tunisia',      flag:'🇹🇳', group:'D', region:'AFR', rating:74 },
-  // Group E
-  { code:'ESP', name:'Spain',        flag:'🇪🇸', group:'E', region:'WEU', rating:89 },
-  { code:'CRC', name:'Costa Rica',   flag:'🇨🇷', group:'E', region:'LAT', rating:70 },
-  { code:'GER', name:'Germany',      flag:'🇩🇪', group:'E', region:'WEU', rating:88 },
-  { code:'JPN', name:'Japan',        flag:'🇯🇵', group:'E', region:'ASI', rating:78 },
-  // Group F
-  { code:'BEL', name:'Belgium',      flag:'🇧🇪', group:'F', region:'WEU', rating:87 },
-  { code:'CAN', name:'Canada',       flag:'🇨🇦', group:'F', region:'NAM', rating:72 },
-  { code:'MAR', name:'Morocco',      flag:'🇲🇦', group:'F', region:'AFR', rating:79 },
-  { code:'CRO', name:'Croatia',      flag:'🇭🇷', group:'F', region:'EEU', rating:84 },
-  // Group G
-  { code:'BRA', name:'Brazil',       flag:'🇧🇷', group:'G', region:'LAT', rating:93 },
-  { code:'SRB', name:'Serbia',       flag:'🇷🇸', group:'G', region:'EEU', rating:78 },
-  { code:'SUI', name:'Switzerland',  flag:'🇨🇭', group:'G', region:'WEU', rating:81 },
-  { code:'CMR', name:'Cameroon',     flag:'🇨🇲', group:'G', region:'AFR', rating:75 },
-  // Group H
-  { code:'POR', name:'Portugal',     flag:'🇵🇹', group:'H', region:'WEU', rating:89 },
-  { code:'GHA', name:'Ghana',        flag:'🇬🇭', group:'H', region:'AFR', rating:74 },
-  { code:'URU', name:'Uruguay',      flag:'🇺🇾', group:'H', region:'LAT', rating:83 },
-  { code:'KOR', name:'South Korea',  flag:'🇰🇷', group:'H', region:'ASI', rating:80 },
-];
-
-// A small set of universally-recognized stars (rosters approximate, illustrative).
-const STARS = {
-  ARG: [['Lionel Messi','CAM',93], ['Emiliano Martínez','GK',86], ['Julián Álvarez','ST',85], ['Rodrigo De Paul','CM',83], ['Cristian Romero','CB',85]],
-  FRA: [['Kylian Mbappé','LW',93], ['Antoine Griezmann','CAM',86], ['Hugo Lloris','GK',84], ['Aurélien Tchouaméni','CDM',85], ['Theo Hernández','LB',85]],
-  BRA: [['Vinícius Jr.','LW',90], ['Neymar','CAM',88], ['Casemiro','CDM',86], ['Marquinhos','CB',87], ['Alisson','GK',88]],
-  ENG: [['Harry Kane','ST',89], ['Jude Bellingham','CM',88], ['Bukayo Saka','RW',86], ['Phil Foden','CAM',85], ['Declan Rice','CDM',85]],
-  ESP: [['Pedri','CM',87], ['Gavi','CM',83], ['Rodri','CDM',89], ['Álvaro Morata','ST',82], ['Unai Simón','GK',83]],
-  POR: [['Cristiano Ronaldo','ST',87], ['Bruno Fernandes','CAM',88], ['Bernardo Silva','CM',88], ['Rúben Dias','CB',88], ['Diogo Costa','GK',82]],
-  GER: [['Joshua Kimmich','CDM',88], ['Jamal Musiala','CAM',86], ['Kai Havertz','ST',84], ['Antonio Rüdiger','CB',87], ['Manuel Neuer','GK',88]],
-  BEL: [['Kevin De Bruyne','CAM',91], ['Romelu Lukaku','ST',86], ['Thibaut Courtois','GK',90], ['Eden Hazard','LW',82]],
-  CRO: [['Luka Modrić','CM',88], ['Mateo Kovačić','CM',83], ['Joško Gvardiol','CB',82], ['Dominik Livaković','GK',82]],
-  NED: [['Virgil van Dijk','CB',89], ['Frenkie de Jong','CM',86], ['Memphis Depay','ST',83], ['Cody Gakpo','LW',83]],
-  POR: [['Cristiano Ronaldo','ST',87], ['Bruno Fernandes','CAM',88], ['Bernardo Silva','CM',88]],
-  URU: [['Federico Valverde','CM',86], ['Darwin Núñez','ST',82], ['Ronald Araújo','CB',86]],
-  MAR: [['Achraf Hakimi','RB',85], ['Hakim Ziyech','CAM',82], ['Yassine Bounou','GK',83]],
-  DEN: [['Christian Eriksen','CAM',83], ['Pierre-Emile Højbjerg','CDM',83]],
-  POL: [['Robert Lewandowski','ST',88]],
-  MEX: [['Hirving Lozano','LW',82]],
-  USA: [['Christian Pulisic','LW',83], ['Weston McKennie','CM',79]],
-  SEN: [['Sadio Mané','LW',86], ['Kalidou Koulibaly','CB',86]],
-  KOR: [['Heung-min Son','LW',88]],
-  JPN: [['Wataru Endo','CDM',80], ['Takefusa Kubo','CAM',80]],
-  AUS: [['Mat Ryan','GK',79]],
-  ECU: [['Moisés Caicedo','CDM',82]],
-  SUI: [['Granit Xhaka','CM',82], ['Yann Sommer','GK',82]],
-  SRB: [['Dušan Vlahović','ST',82], ['Sergej Milinković-Savić','CM',84]],
-  GHA: [['Mohammed Kudus','CAM',80]],
-};
-
-// Region-specific name pools used to fill rosters around the named stars.
-const NAME_BANK = {
-  WEU: { first:['Lucas','Pedro','Jean','Hans','Marco','Pep','Tom','Leon','David','Alex','Mark','Karl','Paolo','Antonio','Diego','Sven','Mads','Erik','Olivier','Ben','Andrés','Pau','Lorenzo','Stefan','Lars','Mathias','Robin','Joel'],
-        last:['Müller','García','Martin','Silva','Smith','Hansen','Rossi','Becker','Larsson','Bauer','Andersen','Nilsen','Janssen','Roux','Lopez','Costa','Pereira','Schmidt','Andersson','Fischer','Vermeulen','Bakker','Visser','Lund','Sørensen','Berg','Dupont','Lefèvre'] },
-  EEU: { first:['Luka','Mateusz','Petar','Marko','Stefan','Vlad','Nikola','Filip','Damir','Ivan','Goran','Lukasz','Tomasz','Aleksandar','Dušan','Andrej','Branislav','Jakub','Pavel','Boris'],
-        last:['Modrić','Lewandowski','Kovačić','Tadić','Nikolić','Stojković','Krasić','Bartoszek','Marković','Jovanović','Petrović','Vukotić','Szczęsny','Krychowiak','Brozović','Perišić','Šešnić','Mitrović'] },
-  LAT: { first:['Carlos','Juan','Diego','Sergio','Eduardo','Manuel','Antonio','Mateo','Joaquín','Rodrigo','Bruno','Iván','Felipe','Pablo','Cristián','Andrés','Gabriel','Marcos','Lucas','Rafael','Thiago','Matías','Esteban','Renato'],
-        last:['Silva','García','Rodríguez','González','Martínez','López','Hernández','Díaz','Pereira','Torres','Vargas','Ortiz','Ramos','Castro','Núñez','Romero','Sosa','Aguirre','Quintero','Reyes','Vega','Acosta'] },
-  AFR: { first:['Sadio','Yassin','Mohammed','Kalidou','Idrissa','Cheikh','Amine','Achraf','Hakim','André','Thomas','Aminu','Samuel','Sofyan','Romain','Édouard','Ibrahim','Karim','Kalifa','Vincent'],
-        last:['Mané','Koulibaly','Mendy','Hakimi','Ziyech','Ayew','Boateng','Aubameyang','Onana','Tchouaméni','Diatta','Aké','Sané','Kanté','Saïd','Mohammadi','Diop','Niasse','Bensebaini','Mahrez'] },
-  ASI: { first:['Hiroki','Yuto','Takumi','Daichi','Heung-min','Min-jae','Hwang','Lee','Junya','Hajime','Yuji','Wataru','Takehiro','Takefusa','Maya','Ritsu','Ko','Hyeon-woo','Jin-su'],
-        last:['Tanaka','Suzuki','Watanabe','Yamamoto','Kim','Lee','Park','Choi','Jung','Kang','Shin','Hashimoto','Itō','Yoshida','Endō','Minamino','Doan','Mitoma','Asano'] },
-  MEA: { first:['Ali','Hassan','Mohammed','Omar','Salem','Khalid','Yousef','Abdullah','Saud','Karim','Reza','Mehdi','Sardar','Ehsan','Mehrdad','Ahmed','Tariq','Salman','Faisal','Rashed'],
-        last:['Al-Sabah','Al-Khaldi','Al-Faraj','Al-Dawsari','Hosseini','Ezatolahi','Azmoun','Rezaeian','Beiranvand','Al-Owais','Al-Burayk','Cherki','Tabarsi','Karimi','Pejman'] },
-  NAM: { first:['Christian','Tyler','Brenden','Weston','Sergiño','Jonathan','Alphonso','Cyle','Stephen','Atiba','Yunus','Tajon','Junior','Steven','Brandon','Tim','Ricardo','Antonee','Walker'],
-        last:['Pulisic','Adams','Aaronson','McKennie','Dest','Davies','Larin','Eustáquio','Hutchinson','Buchanan','Musah','Reyna','Robinson','Zimmerman','Acosta','Sargent','Pepi'] },
-  OCE: { first:['Aaron','Mat','Awer','Mitch','Jackson','Riley','Harry','Jordan','Daniel','Connor','Cameron','Trent','Bailey','Marco','Garang'],
-        last:['Mooy','Ryan','Mabil','Duke','Irvine','McGree','Souttar','Goodwin','Wright','Metcalfe','Tilio','Devlin','Karačić','Behich','Atkinson'] },
-};
+// Data comes from window.WC2026 (defined in wc2026.js).
+const TEAMS   = (window.WC2026 && window.WC2026.TEAMS)   || [];
+const ROSTERS = (window.WC2026 && window.WC2026.ROSTERS) || {};
+const GROUP_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
 
 const FORMATIONS = ['4-3-3','4-4-2','4-2-3-1','3-5-2'];
 const STYLES = {
@@ -152,13 +65,13 @@ function hashCode(s) { let h = 0; for (let i = 0; i < s.length; i++) h = ((h << 
 let state = null;
 let container = null;
 let onExit = null;
-const SAVE_KEY = 'wcmgr.save.v1';
+const SAVE_KEY = 'wcmgr.save.v2';
 
 function save() { if (!state) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch(e){} }
 function load() {
   try {
     const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false;
-    state = JSON.parse(raw); return state && state.v === 1;
+    state = JSON.parse(raw); return state && state.v === 2;
   } catch (e) { return false; }
 }
 function wipe() { localStorage.removeItem(SAVE_KEY); state = null; }
@@ -167,45 +80,33 @@ function wipe() { localStorage.removeItem(SAVE_KEY); state = null; }
 // Roster generation
 // =========================================================================
 function generateRoster(teamCode, seed) {
-  const team = TEAMS.find(t => t.code === teamCode);
-  const bank = NAME_BANK[team.region] || NAME_BANK.WEU;
-  const localRng = mulberry(seed ^ hashCode(teamCode));
-  const lpick = (arr) => arr[Math.floor(localRng() * arr.length)];
-  const lrint = (a, b) => a + Math.floor(localRng() * (b - a + 1));
-
-  // 23-player squad slots
-  const slots = ['GK','GK','GK','CB','CB','CB','CB','RB','RB','LB','LB','CDM','CDM','CM','CM','CM','CAM','CAM','RW','LW','LW','ST','ST'];
+  // Use the hand-authored 2026 roster from wc2026.js.
+  const entries = ROSTERS[teamCode] || [];
   const players = [];
   let id = 0;
-
-  // Insert known stars
-  const stars = (STARS[teamCode] || []).slice();
-  for (const [name, pos, rating] of stars) {
-    let i = slots.indexOf(pos);
-    if (i === -1) {
-      // versatile fallback
-      if (pos === 'CAM') i = slots.indexOf('CM');
-      else if (pos === 'LW' || pos === 'RW') i = slots.indexOf('RW');
-      else if (pos === 'CDM') i = slots.indexOf('CM');
-    }
-    if (i === -1) continue;
-    slots.splice(i, 1);
+  for (const e of entries) {
+    const [name, pos, age, rating] = e;
     players.push({
-      id: id++, name, pos, rating, age: lrint(24, 35),
+      id: id++, name, pos, age, rating,
       cls: CLASS_BY_POS[pos] || 'Bard',
-      fit: 100, inj: 0, sus: 0, star: true,
+      fit: 100, inj: 0, sus: 0,
+      star: rating >= 85,
     });
   }
-  // Fill remaining with generated
-  for (const pos of slots) {
-    const name = lpick(bank.first) + ' ' + lpick(bank.last);
-    const variance = lrint(-8, 6);
-    const r = Math.max(60, Math.min(89, team.rating + variance));
-    players.push({
-      id: id++, name, pos, rating: r, age: lrint(20, 33),
-      cls: CLASS_BY_POS[pos] || 'Bard',
-      fit: 100, inj: 0, sus: 0, star: false,
-    });
+  // If somehow no roster (smaller nation we missed), fill with placeholders.
+  if (players.length === 0) {
+    const team = TEAMS.find(t => t.code === teamCode);
+    const baseR = team ? team.rating : 75;
+    const slots = ['GK','GK','GK','CB','CB','CB','CB','RB','RB','LB','LB','CDM','CDM','CM','CM','CM','CAM','CAM','RW','LW','LW','ST','ST'];
+    let i = 1;
+    for (const pos of slots) {
+      players.push({
+        id: id++, name: teamCode + ' Player ' + i++, pos, age: 26,
+        rating: Math.max(65, baseR - 5),
+        cls: CLASS_BY_POS[pos] || 'Bard',
+        fit: 100, inj: 0, sus: 0, star: false,
+      });
+    }
   }
   return players;
 }
@@ -218,7 +119,7 @@ function newCampaign(yourCode) {
   const rosters = {};
   for (const t of TEAMS) rosters[t.code] = generateRoster(t.code, seed);
   const groups = {};
-  for (const g of ['A','B','C','D','E','F','G','H']) {
+  for (const g of GROUP_LETTERS) {
     const teams = TEAMS.filter(t => t.group === g).map(t => t.code);
     groups[g] = {
       teams,
@@ -227,11 +128,11 @@ function newCampaign(yourCode) {
     };
   }
   state = {
-    v: 1, seed,
+    v: 2, seed,
     yourTeam: yourCode,
     rosters,
     groups,
-    knockout: { r16:[], qf:[], sf:[], final:null },
+    knockout: { r32:[], r16:[], qf:[], sf:[], final:null },
     stage: 'group_1',
     formation: '4-3-3',
     style: 'balanced',
@@ -261,6 +162,7 @@ function getNextOpponent() {
     const fixtures = groupFixtures(group, state.groups[group].teams)[md - 1];
     for (const f of fixtures) if (f.home === yt || f.away === yt) return f;
   }
+  if (stage === 'r32') return state.knockout.r32.find(m => m.home === yt || m.away === yt);
   if (stage === 'r16') return state.knockout.r16.find(m => m.home === yt || m.away === yt);
   if (stage === 'qf')  return state.knockout.qf.find(m => m.home === yt || m.away === yt);
   if (stage === 'sf')  return state.knockout.sf.find(m => m.home === yt || m.away === yt);
@@ -415,7 +317,7 @@ function playMatchday() {
   const stage = state.stage;
   if (stage.startsWith('group_')) {
     const md = parseInt(stage.split('_')[1]);
-    for (const g of ['A','B','C','D','E','F','G','H']) {
+    for (const g of GROUP_LETTERS) {
       const fixtures = groupFixtures(g, state.groups[g].teams)[md - 1];
       for (const f of fixtures) {
         const isYours = (f.home === yt || f.away === yt);
@@ -428,11 +330,11 @@ function playMatchday() {
     }
     if (md < 3) state.stage = 'group_' + (md + 1);
     else {
-      buildR16();
-      state.stage = 'r16';
+      buildR32();
+      state.stage = 'r32';
       if (!getNextOpponent()) state.eliminated = true;
     }
-  } else if (['r16','qf','sf','final'].includes(stage)) {
+  } else if (['r32','r16','qf','sf','final'].includes(stage)) {
     const matches = (stage === 'final') ? [state.knockout.final] : state.knockout[stage];
     for (const m of matches) {
       const isYours = (m.home === yt || m.away === yt);
@@ -447,7 +349,8 @@ function playMatchday() {
       }
       m.winner = (m.hScore > m.aScore || (m.hScore === m.aScore && m.penHome > m.penAway)) ? m.home : m.away;
     }
-    if (stage === 'r16') { buildQF(); state.stage = 'qf'; }
+    if (stage === 'r32') { buildR16(); state.stage = 'r16'; }
+    else if (stage === 'r16') { buildQF(); state.stage = 'qf'; }
     else if (stage === 'qf') { buildSF(); state.stage = 'sf'; }
     else if (stage === 'sf') { buildFinal(); state.stage = 'final'; }
     else if (stage === 'final') {
@@ -479,23 +382,35 @@ function updateStandings(group, fix) {
   else { sh.pts++; sa.pts++; }
 }
 
-function buildR16() {
-  const winners = {}, runners = {};
-  for (const g of ['A','B','C','D','E','F','G','H']) {
+// 48-team format: 12 group winners + 12 runners-up + 8 best 3rd-placed
+// teams advance to R32 (32 teams).
+function buildR32() {
+  const winners = [], runners = [], thirds = [];
+  for (const g of GROUP_LETTERS) {
     const sorted = state.groups[g].standings.slice().sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
-    winners[g] = sorted[0].code;
-    runners[g] = sorted[1].code;
+    winners.push({ g, ...sorted[0] });
+    runners.push({ g, ...sorted[1] });
+    thirds.push({ g, ...sorted[2] });
   }
-  state.knockout.r16 = [
-    { home: winners.A, away: runners.B, slot:0 },
-    { home: winners.C, away: runners.D, slot:1 },
-    { home: winners.E, away: runners.F, slot:2 },
-    { home: winners.G, away: runners.H, slot:3 },
-    { home: winners.B, away: runners.A, slot:4 },
-    { home: winners.D, away: runners.C, slot:5 },
-    { home: winners.F, away: runners.E, slot:6 },
-    { home: winners.H, away: runners.G, slot:7 },
-  ];
+  // Best 8 of 12 third-placed teams advance.
+  thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  const topThirds = thirds.slice(0, 8);
+  // Sort everyone into a seeded list: winners (best first), runners-up, third-placed.
+  winners.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  runners.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  const seeds = winners.concat(runners).concat(topThirds);
+  // Pair 1v32, 2v31, ... 16v17.
+  state.knockout.r32 = [];
+  for (let i = 0; i < 16; i++) {
+    state.knockout.r32.push({ home: seeds[i].code, away: seeds[31 - i].code, slot: i });
+  }
+}
+function buildR16() {
+  const r = state.knockout.r32;
+  state.knockout.r16 = [];
+  for (let i = 0; i < 8; i++) {
+    state.knockout.r16.push({ home: r[i * 2].winner, away: r[i * 2 + 1].winner, slot: i });
+  }
 }
 function buildQF() {
   const r = state.knockout.r16;
@@ -571,7 +486,7 @@ function renderTitleScreen() {
   const grid = el('div', { cls:'teamGrid' });
   const byGroup = {};
   for (const t of TEAMS) (byGroup[t.group] = byGroup[t.group] || []).push(t);
-  for (const g of ['A','B','C','D','E','F','G','H']) {
+  for (const g of GROUP_LETTERS) {
     grid.appendChild(el('div', { text:'Group '+g, cls:'groupLabel' }));
     for (const t of byGroup[g]) {
       const card = el('button', { cls:'teamCard', children:[
@@ -633,6 +548,7 @@ function stageBadge() {
     group_1:'Group Stage · Matchday 1',
     group_2:'Group Stage · Matchday 2',
     group_3:'Group Stage · Matchday 3',
+    r32:'Round of 32',
     r16:'Round of 16',
     qf:'Quarter-finals',
     sf:'Semi-finals',
@@ -791,7 +707,7 @@ function renderBracket() {
   const p = el('div', { cls:'sPanel' });
   p.appendChild(headerBar('Tournament', renderHome));
 
-  for (const g of ['A','B','C','D','E','F','G','H']) {
+  for (const g of GROUP_LETTERS) {
     const sorted = state.groups[g].standings.slice().sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
     const wrap = el('div', { cls:'groupBlock' });
     wrap.appendChild(el('div', { text:'Group ' + g, cls:'groupHead' }));
@@ -804,6 +720,7 @@ function renderBracket() {
     p.appendChild(wrap);
   }
 
+  if (state.knockout.r32 && state.knockout.r32.length) p.appendChild(koBlock('Round of 32', state.knockout.r32));
   if (state.knockout.r16.length) p.appendChild(koBlock('Round of 16', state.knockout.r16));
   if (state.knockout.qf.length)  p.appendChild(koBlock('Quarter-finals', state.knockout.qf));
   if (state.knockout.sf.length)  p.appendChild(koBlock('Semi-finals', state.knockout.sf));

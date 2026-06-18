@@ -1,10 +1,11 @@
-const CACHE = 'arcade-v1';
+const CACHE = 'arcade-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './hub.js',
   './game.js',
+  './wc2026.js',
   './soccer.js',
   './manifest.webmanifest',
   './icon-192.png',
