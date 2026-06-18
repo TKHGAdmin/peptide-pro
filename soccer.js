@@ -476,9 +476,9 @@ function headerBar(title, backFn) {
 // =========================================================================
 function renderTitleScreen() {
   container.innerHTML = '';
-  const p = el('div', { cls:'sPanel' });
+  const p = el('div', { cls:'sPanel sPanelStickyBtn' });
   p.appendChild(headerBar('Cup Manager'));
-  p.appendChild(el('p', { text:'Pick a nation. The campaign begins immediately at the group stage.',
+  p.appendChild(el('p', { text:'Pick a nation. Scroll the list, tap a country card, then tap the gold button at the bottom.',
     style:{fontSize:'13px', color:'var(--muted)', textAlign:'center', marginBottom:'12px'}}));
 
   let selected = null;
@@ -499,14 +499,15 @@ function renderTitleScreen() {
         if (selected) selected.classList.remove('selected');
         selected = card; card.classList.add('selected');
         selectBtn.disabled = false;
-        selectBtn.textContent = 'Manage ' + t.name + ' ' + t.flag;
+        selectBtn.textContent = '▶ Manage ' + t.name + ' ' + t.flag;
+        selectBtn.classList.add('pulseHint');
       });
       grid.appendChild(card);
     }
   }
   p.appendChild(grid);
 
-  selectBtn = el('button', { cls:'sBig', text:'Choose a nation above', disabled:true, on:{click:()=>{
+  selectBtn = el('button', { cls:'sBig sStickyBottom', text:'Tap a country above', disabled:true, on:{click:()=>{
     if (!selected) return;
     newCampaign(selected.dataset.code);
     renderHome();
